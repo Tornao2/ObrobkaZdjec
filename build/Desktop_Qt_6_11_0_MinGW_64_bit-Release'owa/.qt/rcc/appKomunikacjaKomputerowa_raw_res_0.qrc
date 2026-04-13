@@ -1,0 +1,28 @@
+<RCC>
+  <qresource prefix="/qt/qml/KomunikacjaKomputerowa/">
+    <file alias="Resources/arrow-email-forward.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/arrow-email-forward.svg</file>
+    <file alias="Resources/arrow-left.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/arrow-left.svg</file>
+    <file alias="Resources/arrow-right.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/arrow-right.svg</file>
+    <file alias="Resources/color-filter.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/color-filter.svg</file>
+    <file alias="Resources/copy.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/copy.svg</file>
+    <file alias="Resources/corner-bottom-left.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/corner-bottom-left.svg</file>
+    <file alias="Resources/crop.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/crop.svg</file>
+    <file alias="Resources/download.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/download.svg</file>
+    <file alias="Resources/drag-hand-gesture.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/drag-hand-gesture.svg</file>
+    <file alias="Resources/edit-pencil.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/edit-pencil.svg</file>
+    <file alias="Resources/floppy-disk.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/floppy-disk.svg</file>
+    <file alias="Resources/info-circle.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/info-circle.svg</file>
+    <file alias="Resources/maximize.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/maximize.svg</file>
+    <file alias="Resources/open-in-window.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/open-in-window.svg</file>
+    <file alias="Resources/printer.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/printer.svg</file>
+    <file alias="Resources/square3d-corner-to-corner.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/square3d-corner-to-corner.svg</file>
+    <file alias="Resources/sun-light.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/sun-light.svg</file>
+    <file alias="Resources/transition-right.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/transition-right.svg</file>
+    <file alias="Resources/trash.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/trash.svg</file>
+    <file alias="Resources/undo.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/undo.svg</file>
+    <file alias="Resources/xmark.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/xmark.svg</file>
+    <file alias="Resources/zoom-in.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/zoom-in.svg</file>
+    <file alias="Resources/zoom-out.svg">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Resources/zoom-out.svg</file>
+  </qresource>
+</RCC>
+

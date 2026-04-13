@@ -1,0 +1,10 @@
+module KomunikacjaKomputerowa
+typeinfo appKomunikacjaKomputerowa.qmltypes
+prefer :/qt/qml/KomunikacjaKomputerowa/
+Main 254.0 Main.qml
+CustomButton 254.0 Kontrolki/CustomButton.qml
+StartScreen 254.0 Ekrany/StartScreen.qml
+EditorScreen 254.0 Ekrany/EditorScreen.qml
+CornerButton 254.0 Kontrolki/CornerButton.qml
+depends QtQuick
+

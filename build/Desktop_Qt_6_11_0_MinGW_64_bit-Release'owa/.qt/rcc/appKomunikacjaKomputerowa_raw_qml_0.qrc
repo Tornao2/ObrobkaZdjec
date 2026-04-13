@@ -1,0 +1,10 @@
+<RCC>
+  <qresource prefix="/qt/qml/KomunikacjaKomputerowa/">
+    <file alias="Main.qml">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Main.qml</file>
+    <file alias="Kontrolki/CustomButton.qml">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Kontrolki/CustomButton.qml</file>
+    <file alias="Ekrany/StartScreen.qml">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Ekrany/StartScreen.qml</file>
+    <file alias="Ekrany/EditorScreen.qml">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Ekrany/EditorScreen.qml</file>
+    <file alias="Kontrolki/CornerButton.qml">C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/Kontrolki/CornerButton.qml</file>
+  </qresource>
+</RCC>
+
