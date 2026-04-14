@@ -226,6 +226,9 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
+                    onClicked: {
+                        mainStack.push("ManipulationScreen.qml", { "imageSource": imagePath })
+                    }
                 }
                 CustomButton {
                     id: adjustBtn
@@ -312,6 +315,20 @@ Rectangle {
                     iconSize: 35
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     tooltipText: "Edytuj metadane"
+                    onClicked: {
+                            let imgData = {
+                                "path": editorScreen.imagePath,
+                                "name": editorScreen.imagePath.split("/").pop(),
+                                "w": photo.implicitWidth,
+                                "h": photo.implicitHeight,
+                                "fileSize": "3.2 MB",
+                                "depth": "24-bit",
+                                "date": "2024-05-12 14:30",
+                                "dpi" : "300 dpi",
+                                "description" : "Example description"
+                            }
+                            mainStack.push("MetadataScreen.qml", { "imageInfo": imgData })
+                    }
                 }
                 Row {
                     spacing: 5

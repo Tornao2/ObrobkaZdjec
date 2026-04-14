@@ -28,9 +28,12 @@ qt_add_qml_module(appKomunikacjaKomputerowa
         QML_FILES Kontrolki/CustomButton.qml
         QML_FILES Ekrany/StartScreen.qml
         QML_FILES Ekrany/EditorScreen.qml
+        QML_FILES Ekrany/MetadataScreen.qml
+        QML_FILES Ekrany/ManipulationScreen.qml
     RESOURCES
         ${IMAGE_FILES}
         QML_FILES Kontrolki/CornerButton.qml
+        QML_FILES Kontrolki/MetadataEditRow.qml
 )
 
 target_precompile_headers(appKomunikacjaKomputerowa

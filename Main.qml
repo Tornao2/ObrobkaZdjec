@@ -8,11 +8,18 @@ Window {
     height: 960
     visible: true
     title: "PhotoEditor"
-
+    x: (Screen.width - width) / 2
+    y: (Screen.height - height) / 2 - 20
     StackView {
         id: mainStack
         anchors.fill: parent
         initialItem: startComponent
+        pushEnter: null
+        pushExit: null
+        popEnter: null
+        popExit: null
+        replaceEnter: null
+        replaceExit: null
         Component {
             id: startComponent
             StartScreen {

@@ -22,5 +22,5 @@
 #include "C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/build/Desktop_Qt_6_11_0_MinGW_64_bit-Release'owa/.rcc/qmlcache/appKomunikacjaKomputerowa_Ekrany/EditorScreen_qml.cpp"
 
 /* NOLINTNEXTLINE(bugprone-suspicious-include,misc-include-cleaner) */
-#include "C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/build/Desktop_Qt_6_11_0_MinGW_64_bit-Release'owa/.rcc/qmlcache/appKomunikacjaKomputerowa_Kontrolki/CornerButton_qml.cpp"
+#include "C:/Users/Admin/Desktop/Uczelnia/KomunikacjaKomputerowa/build/Desktop_Qt_6_11_0_MinGW_64_bit-Release'owa/.rcc/qmlcache/appKomunikacjaKomputerowa_Ekrany/MetadataScreen_qml.cpp"
 

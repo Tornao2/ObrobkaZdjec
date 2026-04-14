@@ -5,6 +5,9 @@ Main 254.0 Main.qml
 CustomButton 254.0 Kontrolki/CustomButton.qml
 StartScreen 254.0 Ekrany/StartScreen.qml
 EditorScreen 254.0 Ekrany/EditorScreen.qml
+MetadataScreen 254.0 Ekrany/MetadataScreen.qml
+ManipulationScreen 254.0 Ekrany/ManipulationScreen.qml
 CornerButton 254.0 Kontrolki/CornerButton.qml
+MetadataEditRow 254.0 Kontrolki/MetadataEditRow.qml
 depends QtQuick
 

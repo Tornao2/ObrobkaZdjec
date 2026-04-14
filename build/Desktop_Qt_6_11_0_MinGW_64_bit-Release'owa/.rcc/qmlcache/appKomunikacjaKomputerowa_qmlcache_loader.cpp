@@ -33,7 +33,28 @@ namespace _qt_qml_KomunikacjaKomputerowa_Ekrany_EditorScreen_qml {
         reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
     };
 }
+namespace _qt_qml_KomunikacjaKomputerowa_Ekrany_MetadataScreen_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_KomunikacjaKomputerowa_Ekrany_ManipulationScreen_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
 namespace _qt_qml_KomunikacjaKomputerowa_Kontrolki_CornerButton_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_KomunikacjaKomputerowa_Kontrolki_MetadataEditRow_qml { 
     extern const unsigned char qmlData[];
     extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
     const QQmlPrivate::CachedQmlUnit unit = {
@@ -58,7 +79,10 @@ Registry::Registry() {
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/KomunikacjaKomputerowa/Kontrolki/CustomButton.qml"), &QmlCacheGeneratedCode::_qt_qml_KomunikacjaKomputerowa_Kontrolki_CustomButton_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/KomunikacjaKomputerowa/Ekrany/StartScreen.qml"), &QmlCacheGeneratedCode::_qt_qml_KomunikacjaKomputerowa_Ekrany_StartScreen_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/KomunikacjaKomputerowa/Ekrany/EditorScreen.qml"), &QmlCacheGeneratedCode::_qt_qml_KomunikacjaKomputerowa_Ekrany_EditorScreen_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/KomunikacjaKomputerowa/Ekrany/MetadataScreen.qml"), &QmlCacheGeneratedCode::_qt_qml_KomunikacjaKomputerowa_Ekrany_MetadataScreen_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/KomunikacjaKomputerowa/Ekrany/ManipulationScreen.qml"), &QmlCacheGeneratedCode::_qt_qml_KomunikacjaKomputerowa_Ekrany_ManipulationScreen_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/KomunikacjaKomputerowa/Kontrolki/CornerButton.qml"), &QmlCacheGeneratedCode::_qt_qml_KomunikacjaKomputerowa_Kontrolki_CornerButton_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/KomunikacjaKomputerowa/Kontrolki/MetadataEditRow.qml"), &QmlCacheGeneratedCode::_qt_qml_KomunikacjaKomputerowa_Kontrolki_MetadataEditRow_qml::unit);
     QQmlPrivate::RegisterQmlUnitCacheHook registration;
     registration.structVersion = 0;
     registration.lookupCachedQmlUnit = &lookupCachedUnit;
