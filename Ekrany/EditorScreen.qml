@@ -2,11 +2,55 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import "../Kontrolki"
+import QtQuick.Dialogs
+import QtCore
 
 Rectangle {
     id: editorScreen
     color: "#8E9191"
+    property bool isPrinting: false
+    property bool isSaving: false
+    property bool panMode: false
     property string imagePath: ""
+    property string originalImagePath: ""
+    property var history: []
+    property int historyIndex: -1
+    property bool isShowingOriginal: false
+    function commitState(path) {
+        let newHistory = history.slice(0, historyIndex + 1)
+        newHistory.push(path)
+        history = newHistory
+        historyIndex = history.length - 1
+    }
+    Component.onCompleted: {
+        if (originalImagePath === "") {
+            originalImagePath = imagePath
+            commitState(imagePath)
+        }
+    }
+    Timer {
+        id: saveTimer
+        interval: 50
+        repeat: true
+        onTriggered: {
+            if (saveProgressBar.value < 1.0) {
+                saveProgressBar.value += 0.02
+            } else {
+                saveTimer.stop()
+                editorScreen.isSaving = false
+                saveSuccessMessage.open()
+                saveProgressBar.value = 0
+            }
+        }
+    }
+    Timer {
+        id: printTimer
+        interval: 2500
+        onTriggered: {
+            editorScreen.isPrinting = false
+            printSuccessMessage.open()
+        }
+    }
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -29,6 +73,7 @@ Rectangle {
                     icon.source: "../Resources/trash.svg"
                     iconSize: 35
                     tooltipText: "Usuń"
+                    onClicked: deleteConfirm.open()
                 }
                 CustomButton {
                     id: printBtn
@@ -36,6 +81,20 @@ Rectangle {
                     icon.source: "../Resources/printer.svg"
                     iconSize: 35
                     tooltipText: "Drukuj"
+                    enabled: !editorScreen.isPrinting
+                    opacity: editorScreen.isPrinting ? (printingAnim.running ? 1.0 : 0.6) : 1.0
+                    SequentialAnimation on opacity {
+                        id: printingAnim
+                        running: editorScreen.isPrinting
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1.0; to: 0.3; duration: 600 }
+                        NumberAnimation { from: 0.3; to: 1.0; duration: 600 }
+                    }
+
+                    onClicked: {
+                        editorScreen.isPrinting = true
+                        printTimer.start()
+                    }
                 }
                 CustomButton {
                     id: copyBtn
@@ -43,6 +102,9 @@ Rectangle {
                     icon.source: "../Resources/copy.svg"
                     iconSize: 35
                     tooltipText: "Kopiuj"
+                    onClicked: {
+                        copySuccessDialog.open()
+                    }
                 }
                 CustomButton {
                     id: importBtn
@@ -50,6 +112,7 @@ Rectangle {
                     icon.source: "../Resources/download.svg"
                     iconSize: 35
                     tooltipText: "Importuj"
+                    onClicked: importFileDialog.open()
                 }
                 CustomButton {
                     id: saveBtn
@@ -57,6 +120,11 @@ Rectangle {
                     icon.source: "../Resources/floppy-disk.svg"
                     iconSize: 35
                     tooltipText: "Zapisz"
+                    enabled: !editorScreen.isSaving && !editorScreen.isPrinting
+                        onClicked: {
+                            editorScreen.isSaving = true
+                            saveTimer.start()
+                        }
                 }
             }
         }
@@ -89,6 +157,7 @@ Rectangle {
                             color: resetBtn.pressed ? "#A34141" : (resetBtn.hovered ? "#C45454" : "#AB4141")
                             radius: 4
                         }
+                        onClicked: resetConfirm.open()
                     }
                     RowLayout {
                         Layout.fillWidth: true
@@ -98,11 +167,19 @@ Rectangle {
                             Layout.preferredWidth: 50; Layout.preferredHeight: 50
                             icon.source: "../Resources/undo.svg"
                             iconSize: 35
+                            enabled: editorScreen.historyIndex > 0
+                            opacity: enabled ? 1.0 : 0.4
                             tooltipText: "Cofnij"
+                            onClicked: {
+                                historyIndex--
+                                editorScreen.imagePath = history[historyIndex]
+                            }
                         }
                         CustomButton {
                             id: redoBtn
                             Layout.fillWidth: true
+                            enabled: editorScreen.historyIndex < editorScreen.history.length - 1
+                            opacity: enabled ? 1.0 : 0.4
                             Layout.preferredWidth: 50; Layout.preferredHeight: 50
                             icon.source: "../Resources/undo.svg"
                             iconSize: 35
@@ -117,9 +194,14 @@ Rectangle {
                                     mirror: true
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
+                                    opacity: redoBtn.enabled ? 1.0 : 0.5
                                 }
                             }
                             tooltipText: "Ponów"
+                            onClicked: {
+                                historyIndex++
+                                editorScreen.imagePath = history[historyIndex]
+                            }
                         }
                         CustomButton {
                             id: actionBtn
@@ -128,20 +210,68 @@ Rectangle {
                             icon.source: "../Resources/transition-right.svg"
                             iconSize: 35
                             tooltipText: "Pokaż zmiany"
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: {
+                                    isShowingOriginal = true
+                                    photo.source = editorScreen.originalImagePath
+                                }
+                                onExited: {
+                                    isShowingOriginal = false
+                                    photo.source = editorScreen.imagePath
+                                }
+                            }
                         }
                     }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
-                    CornerButton {  }
+                    CornerButton {
+                        settingsCategory: "slot1"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot2"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot3"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot4"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot5"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot6"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot7"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot8"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot9"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot10"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot11"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
+                    CornerButton {
+                        settingsCategory: "slot12"
+                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    }
                     Item { Layout.fillHeight: true }
                 }
             }
@@ -153,46 +283,52 @@ Rectangle {
                 Item {
                     id: imageContainer
                     anchors.fill: parent
-                    anchors.margins: 20
+                    clip: true
                     Image {
                         id: photo
-                        source: editorScreen.imagePath
+                        source: isShowingOriginal ? editorScreen.originalImagePath : editorScreen.imagePath
                         asynchronous: true
-                        anchors.centerIn: parent
+                        x: (parent.width - width) / 2
+                        y: (parent.height - height) / 2
+                        scale: zoomSlider.value
+                        transformOrigin: Item.Center
                         width: Math.min(implicitWidth, imageContainer.width)
                         height: Math.min(implicitHeight, imageContainer.height)
                         fillMode: Image.PreserveAspectFit
-                    }
-                    Image {
-                        id: arrowLeft
-                        source: "../Resources/arrow-left.svg"
-                        sourceSize: Qt.size(35, 35)
-                        opacity: 0.6
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        anchors.leftMargin: -10
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onEntered: arrowLeft.opacity = 1.0
-                            onExited: arrowLeft.opacity = 0.6
+                        Behavior on x { enabled: !dragArea.drag.active; NumberAnimation { duration: 200 } }
+                        Behavior on y { enabled: !dragArea.drag.active; NumberAnimation { duration: 200 } }
+                        Behavior on scale {
+                            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
                         }
                     }
-                    Image {
-                        id: arrowRight
-                        source: "../Resources/arrow-right.svg"
-                        sourceSize: Qt.size(35, 35)
-                        opacity: 0.6
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
-                        anchors.rightMargin: -10
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onEntered: arrowRight.opacity = 1.0
-                            onExited: arrowRight.opacity = 0.6
+                    MouseArea {
+                        id: dragArea
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        cursorShape: (editorScreen.panMode || pressedButtons & Qt.MiddleButton)
+                                     ? Qt.ClosedHandCursor : Qt.ArrowCursor
+                        drag.target: (editorScreen.panMode || pressedButtons & Qt.MiddleButton) ? photo : null
+                        drag.axis: Drag.XAndYAxis
+                        drag.minimumX: -photo.width / 2
+                        drag.maximumX: imageContainer.width - photo.width / 2
+                        drag.minimumY: -photo.height / 2
+                        drag.maximumY: imageContainer.height - photo.height / 2
+                        onPressed: (mouse) => {
+                            if (mouse.button === Qt.MiddleButton) {
+                                mouse.accepted = true
+                            }
+                        }
+                        onWheel: (wheel) => {
+                            if (wheel.angleDelta.y > 0) {
+                                zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.1)
+                            } else {
+                                zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.1)
+                            }
+                        }
+                        onDoubleClicked: {
+                            photo.x = (parent.width - photo.width) / 2
+                            photo.y = (parent.height - photo.height) / 2
+                            zoomSlider.value = 1.0
                         }
                     }
                 }
@@ -367,19 +503,25 @@ Rectangle {
                 }
                 Item { Layout.fillWidth: true }
                 CustomButton {
+                    id: handBtn
                     icon.source: "../Resources/drag-hand-gesture.svg"
                     iconSize: 35
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                    tooltipText: "Włącz tryb przesuwania zdjęcia"
+                    tooltipText: "Przesuń obraz"
+                    background: Rectangle {
+                        color: editorScreen.panMode ? "#6E7171" : (handBtn.hovered ? "#9EAAAA" : "transparent")
+                        radius: 4
+                    }
+                    onClicked: editorScreen.panMode = !editorScreen.panMode
                 }
                 RowLayout {
                     spacing: 5
                     CustomButton {
-                        icon.source: "../Resources/zoom-in.svg"
+                        icon.source: "../Resources/zoom-out.svg"
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
-                        tooltipText: "Przybliż zdjęcie"
+                        tooltipText: "Oddal zdjęcie"
                     }
                     Slider {
                         id: zoomSlider
@@ -411,20 +553,179 @@ Rectangle {
                         }
                     }
                     CustomButton {
-                        icon.source: "../Resources/zoom-out.svg"
+                        icon.source: "../Resources/zoom-in.svg"
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
-                        tooltipText: "Oddal zdjęcie"
+                        tooltipText: "Przybliż zdjęcie"
                     }
                 }
                 CustomButton {
+                    id: fullscreenBtn
                     icon.source: "../Resources/maximize.svg"
                     iconSize: 35
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                    tooltipText: "Włącz tryb pełnego ekranu"
+                    tooltipText: "Dopasuj do ekranu"
+                    onClicked: zoomToFit()
                 }
             }
         }
+    }
+    Rectangle {
+        id: printingOverlay
+        color: "#000000"
+        anchors.fill: parent
+        opacity: editorScreen.isPrinting ? 0.6 : 0.0
+        visible: opacity > 0
+        z: 100
+        Behavior on opacity {
+            NumberAnimation { duration: 400 }
+        }
+        MouseArea {
+            anchors.fill: parent
+            enabled: printingOverlay.visible
+        }
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: editorScreen.isPrinting
+        }
+        Text {
+            text: "Drukowanie..."
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.verticalCenter
+            anchors.topMargin: 40
+            font.pixelSize: 24
+            color: "white"
+        }
+    }
+    Rectangle {
+        id: saveOverlay
+        anchors.fill: parent
+        color: "#000000"
+        opacity: editorScreen.isSaving ? 0.7 : 0.0
+        visible: opacity > 0
+        z: 110
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+        MouseArea { anchors.fill: parent; enabled: saveOverlay.visible }
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 20
+            Text {
+                text: "Zapisywanie zmian..."
+                color: "white"
+                font.pixelSize: 22
+                Layout.alignment: Qt.AlignHCenter
+            }
+            ProgressBar {
+                id: saveProgressBar
+                from: 0
+                to: 1.0
+                value: 0
+                Layout.preferredWidth: 300
+                background: Rectangle {
+                    implicitHeight: 6
+                    color: "#444"
+                    radius: 3
+                }
+                contentItem: Item {
+                    Rectangle {
+                        width: saveProgressBar.visualPosition * parent.width
+                        height: parent.height
+                        radius: 2
+                        color: "#AC4141"
+                    }
+                }
+            }
+        }
+    }
+    ConfirmDialog {
+        id: copySuccessDialog
+        isAlert: true
+        title: "Schowek"
+        message: "Zdjęcie zostało skopiowane do schowka!"
+    }
+    ConfirmDialog {
+        id: printSuccessMessage
+        isAlert: true
+        title: "Status drukowania"
+        message: "Zdjęcie zostało pomyślnie wysłane do drukarki!"
+    }
+    ConfirmDialog {
+        id: deleteConfirm
+        isAlert: false
+        message: "Czy na pewno chcesz usunąć zdjęcie: " + editorScreen.imagePath.split("/").pop() + "?"
+        onConfirmed: {
+            let pathToRemove = editorScreen.imagePath
+            let startPage = mainStack.get(0)
+            if (startPage && typeof startPage.usunZHistorii === "function") {
+                startPage.usunZHistorii(pathToRemove)
+            }
+            mainStack.pop()
+        }
+    }
+    FileDialog {
+        id: importFileDialog
+        title: "Wybierz nowe zdjęcie"
+        currentFolder: StandardPaths.writableLocation(StandardPaths.PicturesLocation)
+        nameFilters: ["Obrazy (*.jpg *.png *.jpeg)"]
+        onAccepted: {
+            importConfirm.open()
+        }
+    }
+    ConfirmDialog {
+        id: importConfirm
+        message: "Czy na pewno chcesz podmienić obecne zdjęcie na: " + importFileDialog.selectedFile.toString().split("/").pop() + "?"
+        onConfirmed: {
+            let newPath = importFileDialog.selectedFile.toString()
+            editorScreen.imagePath = newPath
+            editorScreen.originalImagePath = newPath
+            editorScreen.history = []
+            commitState(newPath)
+            let startPage = mainStack.get(0)
+            if (startPage && typeof startPage.dodajDoHistorii === "function") {
+                startPage.dodajDoHistorii(newPath)
+            }
+        }
+    }
+    ConfirmDialog {
+        id: saveSuccessMessage
+        isAlert: true
+        title: "Zapisano"
+        message: "Zmiany zostały pomyślnie zapisane w pliku."
+    }
+    ConfirmDialog {
+        id: resetConfirm
+        title: "Potwierdź reset"
+        message: "Czy na pewno chcesz cofnąć wszystkie zmiany i powrócić do oryginalnego zdjęcia?"
+        onConfirmed: {
+            editorScreen.imagePath = editorScreen.originalImagePath
+            zoomSlider.value = 1.0
+        }
+    }
+    function zoomToFit() {
+        if (photo.status !== Image.Ready) return
+        let imgW = photo.sourceSize.width
+        let imgH = photo.sourceSize.height
+        let containerW = imageContainer.width
+        let containerH = imageContainer.height
+        let scaleX = containerW / imgW
+        let scaleY = containerH / imgH
+        let finalScale = Math.min(scaleX, scaleY)
+        if (photo.width > 0 && photo.height > 0) {
+            let currentRatioX = containerW / photo.width
+            let currentRatioY = containerH / photo.height
+            finalScale = Math.min(currentRatioX, currentRatioY)
+        }
+        zoomSlider.value = finalScale
+        photo.x = (imageContainer.width - photo.width) / 2
+        photo.y = (imageContainer.height - photo.height) / 2
+    }
+    function triggerEditorAction(actionName) {
+        if (actionName === "Crop") {
+
+        } else if (actionName === "Brightness") {
+            //PODODAWAĆ TUTAJ LGOIKĘ PRZECHODZENIA POTEM
+        }
+
     }
 }

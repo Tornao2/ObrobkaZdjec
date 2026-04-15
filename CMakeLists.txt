@@ -34,6 +34,7 @@ qt_add_qml_module(appKomunikacjaKomputerowa
         ${IMAGE_FILES}
         QML_FILES Kontrolki/CornerButton.qml
         QML_FILES Kontrolki/MetadataEditRow.qml
+        QML_FILES Kontrolki/ConfirmDialog.qml
 )
 
 target_precompile_headers(appKomunikacjaKomputerowa

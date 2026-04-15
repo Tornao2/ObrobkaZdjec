@@ -10,6 +10,17 @@ Rectangle {
     color: "#8E9191"
     readonly property int iconColumnWidth: 100
     signal fileSelected(string filePath)
+
+    function usunZHistorii(sciezka) {
+        let sciezkaStr = String(sciezka);
+        for (let i = 0; i < historyModel.count; i++) {
+            if (historyModel.get(i).fullPath === sciezkaStr) {
+                historyModel.remove(i);
+                zapiszUstawienia();
+                break;
+            }
+        }
+    }
     Settings {
         id: appSettings
         category: "History"
@@ -51,7 +62,7 @@ Rectangle {
     FileDialog {
         id: fileOpenDialog
         title: "Wybierz zdjęcie do obróbki"
-        nameFilters: ["Obrazy (*.jpg *.png *.bmp)"]
+        nameFilters: ["Obrazy (*.jpg *.png *.jpeg)"]
         onAccepted: {
             let path = String(selectedFile)
             dodajDoHistorii(selectedFile)
@@ -216,3 +227,4 @@ Rectangle {
         }
     }
 }
+

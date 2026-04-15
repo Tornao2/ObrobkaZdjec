@@ -2,8 +2,10 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import "Ekrany"
+import "Kontrolki"
 
-Window {
+ApplicationWindow {
+    id: mainWindow
     width: 1280
     height: 960
     visible: true
