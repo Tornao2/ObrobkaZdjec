@@ -5,7 +5,19 @@ Button {
     id: control
     property string tooltipText: ""
     property int iconSize: 32
+    hoverEnabled: true
     padding: 0
+    signal entered()
+    signal exited()
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        propagateComposedEvents: true
+        onEntered: control.entered()
+        onExited: control.exited()
+        cursorShape: Qt.PointingHandCursor
+        onPressed: (mouse) => mouse.accepted = false
+    }
     contentItem: Item {
         implicitWidth: img.width
         implicitHeight: img.height
@@ -16,12 +28,15 @@ Button {
             height: control.iconSize
             source: control.icon.source
             fillMode: Image.PreserveAspectFit
-            opacity: control.hovered ? 1.0 : 0.8
+            opacity: !control.enabled ? 0.2 : (control.hovered ? 1.0 : 0.8)
+            scale: control.pressed ? 0.9 : 1.0
+            Behavior on scale { NumberAnimation { duration: 50 } }
         }
     }
 
     background: Rectangle {
-        anchors.fill: parent
+        implicitWidth: control.iconSize + 10
+        implicitHeight: control.iconSize + 10
         color: control.pressed ? "#66000000" : (control.hovered ? "#33000000" : "transparent")
         radius: 8
     }

@@ -10,23 +10,54 @@ Rectangle {
     color: "#8E9191"
     property bool isPrinting: false
     property bool isSaving: false
+    signal changesSaved(var finalState)
     property bool panMode: false
     property string imagePath: ""
     property string originalImagePath: ""
     property var history: []
     property int historyIndex: -1
     property bool isShowingOriginal: false
+    property var currentMetadata: ({})
+    property var originalMetadata: ({})
+    function initializeMetadata(data) {
+        currentMetadata = data
+        originalMetadata = Object.assign({}, data)
+    }
     function commitState(path) {
+        let state = {
+            "path": path,
+            "metadata": Object.assign({}, currentMetadata)
+        }
         let newHistory = history.slice(0, historyIndex + 1)
-        newHistory.push(path)
+        newHistory.push(state)
         history = newHistory
         historyIndex = history.length - 1
     }
     Component.onCompleted: {
         if (originalImagePath === "") {
             originalImagePath = imagePath
-            commitState(imagePath)
         }
+        let initialData = {
+            "path": editorScreen.imagePath,
+            "name": editorScreen.imagePath.split("/").pop(),
+            "format": editorScreen.imagePath.split(".").pop(),
+            "w": photo.implicitWidth,
+            "h": photo.implicitHeight,
+            "dpi": "300 dpi",
+            "depth": "24-bit",
+            "fileSize": "3.2 MB",
+            "date": "2024-05-12 14:30",
+            "cameraModel": "Sony Alpha a7 IV",
+            "iso": "400",
+            "fStop": "f/2.8",
+            "shutterSpeed": "1/200s",
+            "artist": "Jan Kowalski",
+            "copyright": "© 2024 Kowalski Studio. All rights reserved.",
+            "description": "Sesja plenerowa - Park Narodowy, zachód słońca."
+        }
+        currentMetadata = initialData
+        originalMetadata = Object.assign({}, initialData)
+        commitState(editorScreen.imagePath)
     }
     Timer {
         id: saveTimer
@@ -60,7 +91,7 @@ Rectangle {
             Layout.preferredHeight: 50
             color: "#8E9191"
             Text {
-                text: editorScreen.imagePath.split("/").pop()
+                text: editorScreen.currentMetadata.name || ""
                 anchors.centerIn: parent
                 font.pixelSize: 20; color: "black"
             }
@@ -172,7 +203,9 @@ Rectangle {
                             tooltipText: "Cofnij"
                             onClicked: {
                                 historyIndex--
-                                editorScreen.imagePath = history[historyIndex]
+                                let state = history[historyIndex]
+                                editorScreen.imagePath = state.path
+                                editorScreen.currentMetadata = state.metadata
                             }
                         }
                         CustomButton {
@@ -194,13 +227,15 @@ Rectangle {
                                     mirror: true
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
-                                    opacity: redoBtn.enabled ? 1.0 : 0.5
+                                    opacity: redoBtn.enabled ? 1.0 : 0.25
                                 }
                             }
                             tooltipText: "Ponów"
                             onClicked: {
                                 historyIndex++
-                                editorScreen.imagePath = history[historyIndex]
+                                let state = history[historyIndex]
+                                editorScreen.imagePath = state.path
+                                editorScreen.currentMetadata = state.metadata
                             }
                         }
                         CustomButton {
@@ -224,53 +259,12 @@ Rectangle {
                             }
                         }
                     }
-                    CornerButton {
-                        settingsCategory: "slot1"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot2"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot3"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot4"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot5"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot6"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot7"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot8"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot9"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot10"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot11"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
-                    }
-                    CornerButton {
-                        settingsCategory: "slot12"
-                        onFunctionActivated: (name) => triggerEditorAction(name)
+                    Repeater {
+                        model: 12
+                        CornerButton {
+                            settingsCategory: "slot" + (index + 1)
+                            onFunctionActivated: (name) => triggerEditorAction(name)
+                        }
                     }
                     Item { Layout.fillHeight: true }
                 }
@@ -287,7 +281,6 @@ Rectangle {
                     Image {
                         id: photo
                         source: isShowingOriginal ? editorScreen.originalImagePath : editorScreen.imagePath
-                        asynchronous: true
                         x: (parent.width - width) / 2
                         y: (parent.height - height) / 2
                         scale: zoomSlider.value
@@ -299,6 +292,16 @@ Rectangle {
                         Behavior on y { enabled: !dragArea.drag.active; NumberAnimation { duration: 200 } }
                         Behavior on scale {
                             NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+                        }
+                        onStatusChanged: {
+                            if (status === Image.Ready) {
+                                let updated = Object.assign({}, editorScreen.currentMetadata)
+                                updated.name = source.toString().split("/").pop()
+                                updated.path = source.toString()
+                                updated.w = sourceSize.width
+                                updated.h = sourceSize.height
+                                editorScreen.currentMetadata = updated
+                            }
                         }
                     }
                     MouseArea {
@@ -452,18 +455,13 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     tooltipText: "Edytuj metadane"
                     onClicked: {
-                            let imgData = {
-                                "path": editorScreen.imagePath,
-                                "name": editorScreen.imagePath.split("/").pop(),
-                                "w": photo.implicitWidth,
-                                "h": photo.implicitHeight,
-                                "fileSize": "3.2 MB",
-                                "depth": "24-bit",
-                                "date": "2024-05-12 14:30",
-                                "dpi" : "300 dpi",
-                                "description" : "Example description"
+                        let pg = mainStack.push("MetadataScreen.qml", { "imageInfo": editorScreen.currentMetadata })
+                        pg.metadataUpdated.connect(function(updatedData) {
+                            if (JSON.stringify(currentMetadata) !== JSON.stringify(updatedData)) {
+                                currentMetadata = updatedData
+                                commitState(editorScreen.imagePath)
                             }
-                            mainStack.push("MetadataScreen.qml", { "imageInfo": imgData })
+                        })
                     }
                 }
                 Row {
@@ -680,7 +678,10 @@ Rectangle {
             editorScreen.imagePath = newPath
             editorScreen.originalImagePath = newPath
             editorScreen.history = []
+            editorScreen.historyIndex = -1
             commitState(newPath)
+            zoomSlider.value = 1.0
+            zoomToFit()
             let startPage = mainStack.get(0)
             if (startPage && typeof startPage.dodajDoHistorii === "function") {
                 startPage.dodajDoHistorii(newPath)
@@ -700,6 +701,7 @@ Rectangle {
         onConfirmed: {
             editorScreen.imagePath = editorScreen.originalImagePath
             zoomSlider.value = 1.0
+            zoomToFit()
         }
     }
     function zoomToFit() {
