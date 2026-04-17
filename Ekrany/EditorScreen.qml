@@ -19,6 +19,7 @@ Rectangle {
     property bool isShowingOriginal: false
     property var currentMetadata: ({})
     property var originalMetadata: ({})
+    property var tempMetadata: ({})
     function initializeMetadata(data) {
         currentMetadata = data
         originalMetadata = Object.assign({}, data)
@@ -58,6 +59,7 @@ Rectangle {
         currentMetadata = initialData
         originalMetadata = Object.assign({}, initialData)
         commitState(editorScreen.imagePath)
+        zoomToFit()
     }
     Timer {
         id: saveTimer
@@ -251,10 +253,13 @@ Rectangle {
                                 onEntered: {
                                     isShowingOriginal = true
                                     photo.source = editorScreen.originalImagePath
+                                    editorScreen.tempMetadata = editorScreen.currentMetadata
+                                    editorScreen.currentMetadata = editorScreen.originalMetadata
                                 }
                                 onExited: {
                                     isShowingOriginal = false
                                     photo.source = editorScreen.imagePath
+                                    editorScreen.currentMetadata = editorScreen.tempMetadata
                                 }
                             }
                         }
@@ -524,9 +529,9 @@ Rectangle {
                     Slider {
                         id: zoomSlider
                         from: 0.1
-                        to: 3.0
+                        to: 5.0
                         value: 1.0
-                        Layout.preferredWidth: 120
+                        Layout.preferredWidth: 250
                         ToolTip.visible: pressed
                         ToolTip.delay: 0
                         ToolTip.text: Math.round(value * 100) + "%"
@@ -679,6 +684,29 @@ Rectangle {
             editorScreen.originalImagePath = newPath
             editorScreen.history = []
             editorScreen.historyIndex = -1
+            photo.source = ""
+            photo.source = editorScreen.imagePath
+            let initialData = {
+                "path": editorScreen.imagePath,
+                "name": editorScreen.imagePath.split("/").pop(),
+                "format": editorScreen.imagePath.split(".").pop(),
+                "w": photo.implicitWidth,
+                "h": photo.implicitHeight,
+                "dpi": "300 dpi",
+                "depth": "24-bit",
+                "fileSize": "3.2 MB",
+                "date": "2024-05-12 14:30",
+                "cameraModel": "Sony Alpha a7 IV",
+                "iso": "400",
+                "fStop": "f/2.8",
+                "shutterSpeed": "1/200s",
+                "artist": "Jan Kowalski",
+                "copyright": "© 2024 Kowalski Studio. All rights reserved.",
+                "description": "Sesja plenerowa - Park Narodowy, zachód słońca."
+            }
+            currentMetadata = initialData
+            editorScreen.panMode = false
+            originalMetadata = initialData
             commitState(newPath)
             zoomSlider.value = 1.0
             zoomToFit()
@@ -700,8 +728,17 @@ Rectangle {
         message: "Czy na pewno chcesz cofnąć wszystkie zmiany i powrócić do oryginalnego zdjęcia?"
         onConfirmed: {
             editorScreen.imagePath = editorScreen.originalImagePath
+            editorScreen.currentMetadata = editorScreen.originalMetadata
+            editorScreen.history = []
+            editorScreen.historyIndex = -1
+            commitState(editorScreen.imagePath)
             zoomSlider.value = 1.0
+            editorScreen.panMode = false
             zoomToFit()
+            let startPage = mainStack.get(0)
+            if (startPage && typeof startPage.dodajDoHistorii === "function") {
+                startPage.dodajDoHistorii(editorScreen.imagePath)
+            }
         }
     }
     function zoomToFit() {

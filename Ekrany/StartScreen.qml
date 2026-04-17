@@ -146,7 +146,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            rightMargin: scrollBar.visible ? 20 : 0
+            rightMargin: 20
             model: ListModel {
                 id: historyModel
             }

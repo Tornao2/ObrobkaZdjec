@@ -34,8 +34,8 @@ Dialog {
     }
 
     contentItem: Item {
-        implicitWidth: 350
-        implicitHeight: 100
+        implicitWidth: 400
+        implicitHeight: 150
         Text {
             id: messageText
             width: parent.width - 40
@@ -45,7 +45,7 @@ Dialog {
             color: "black"
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            wrapMode: Text.WordWrap
+            wrapMode: Text.Wrap
         }
     }
     footer: DialogButtonBox {
