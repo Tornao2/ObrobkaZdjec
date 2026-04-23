@@ -468,7 +468,16 @@ Rectangle {
                                             "cameraModel": originalInfo.cameraModel,
                                             "iso": originalInfo.iso,
                                             "fStop": originalInfo.fStop,
-                                            "shutterSpeed": originalInfo.shutterSpeed
+                                            "shutterSpeed": originalInfo.shutterSpeed,
+                                            "flipH" : workingInfo.flipH,
+                                            "flipV" : workingInfo.flipV,
+                                            "angle" : workingInfo.angle,
+                                            "crop": {
+                                                "x": workingInfo.crop.x || 0,
+                                                "y": workingInfo.crop.y || 0,
+                                                "w": workingInfo.crop.w || originalInfo.crop.w,
+                                                "h": workingInfo.crop.h || originalInfo.crop.h
+                                            }
                                         };
                                         metadataScreen.metadataUpdated(finalState);
                                         mainStack.pop();

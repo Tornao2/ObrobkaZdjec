@@ -1,379 +1,628 @@
-import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls
-import "../Kontrolki"
+    import QtQuick
+    import QtQuick.Layouts
+    import QtQuick.Controls
+    import "../Kontrolki"
 
-Rectangle {
-    id: editorScreen
-    color: "#8E9191"
-    property string imageSource: ""
-    readonly property real imgX: photo.x + (photo.width - photo.paintedWidth) / 2
-    readonly property real imgY: photo.y + (photo.height - photo.paintedHeight) / 2
-    readonly property real imgW: photo.paintedWidth
-    readonly property real imgH: photo.paintedHeight
-    property real cropX: imgX
-    property real cropY: imgY
-    property real cropWidth: imgW
-    property real cropHeight: imgH
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 0
-        Rectangle {
-            id: topBar
-            Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#8E9191"
-            Text {
-                text: editorScreen.imageSource.split("/").pop()
-                anchors.centerIn: parent
-                font.pixelSize: 20; color: "black"
+    Rectangle {
+        id: manipulationScreen
+        color: "#8E9191"
+        property var imageInfo: ({})
+        property var workingInfo: ({
+            "crop": { "x": 0, "y": 0, "w": 1000, "h": 1000 },
+            "angle": 0,
+            "flipH": 1,
+            "flipV": 1,
+            "path": "",
+            "name": ""
+        })
+
+        property var originalInfo: ({
+            "crop": { "x": 0, "y": 0, "w": 1000, "h": 1000 },
+            "angle": 0,
+            "flipH": 1,
+            "flipV": 1,
+            "path": "",
+            "name": ""
+        })
+        property bool panMode: false
+        property var history: []
+        property int historyIndex: -1
+        property bool isShowingOriginal: false
+        property bool blockHistory: false
+        signal manipulationFinished(var finalInfo)
+        function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+        function saveState() {
+            if (blockHistory) return;
+            let stateToSave = clone(workingInfo)
+            stateToSave.angle = rotationSlider.value;
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
             }
+            history.push(stateToSave);
+            historyIndex = history.length - 1;
         }
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+        function applyState(state) {
+            if (!state) return;
+            blockHistory = true;
+            workingInfo = clone(state);
+            rotationSlider.value = state.angle;
+            blockHistory = false;
+        }
+        Component.onCompleted: {
+            workingInfo = JSON.parse(JSON.stringify(imageInfo));
+            originalInfo = JSON.parse(JSON.stringify(imageInfo));
+            history = [];
+            historyIndex = -1;
+            saveState()
+            zoomToFit()
+        }
+        function stripExtension(fileName) {
+            if (!fileName) return "";
+            return fileName.indexOf('.') !== -1 ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+        }
+        ColumnLayout {
+            anchors.fill: parent
             spacing: 0
             Rectangle {
-                Layout.preferredWidth: 150
-                Layout.fillHeight: true
+                id: topBar
+                Layout.fillWidth: true
+                Layout.preferredHeight: 50
                 color: "#8E9191"
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 12
-                    Button {
-                        id: resetBtn
-                        text: "Anuluj"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        contentItem: Text {
-                            text: resetBtn.text
-                            font.pixelSize: 20
-                            font.weight: Font.Medium
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: resetBtn.pressed ? "#A34141" : (resetBtn.hovered ? "#C45454" : "#AB4141")
-                            radius: 4
-                        }
-                        onClicked: mainStack.pop()
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        CustomButton {
-                            id: undoBtn
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/undo.svg"
-                            iconSize: 35
-                            tooltipText: "Cofnij"
-                        }
-                        CustomButton {
-                            id: redoBtn
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/undo.svg"
-                            iconSize: 35
-                            contentItem: Item {
-                                Image {
-                                    anchors.centerIn: parent
-                                    width: redoBtn.iconSize
-                                    height: redoBtn.iconSize
-                                    sourceSize.width: redoBtn.iconSize
-                                    sourceSize.height: redoBtn.iconSize
-                                    source: redoBtn.icon.source
-                                    mirror: true
-                                    fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                }
-                            }
-                            tooltipText: "Ponów"
-                        }
-                        CustomButton {
-                            id: actionBtn
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/transition-right.svg"
-                            iconSize: 35
-                            tooltipText: "Pokaż zmiany"
-                        }
-                    }
+                Text {
+                    text: workingInfo.name
+                    anchors.centerIn: parent
+                    font.pixelSize: 20; color: "black"
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 0
+                Rectangle {
+                    Layout.preferredWidth: 150
+                    Layout.fillHeight: true
+                    color: "#8E9191"
                     ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        spacing: 2
-                        Slider {
-                            id: rotationSlider
-                            from: -180
-                            to: 180
-                            value: 0
-                            stepSize: 10
-                            orientation: Qt.Vertical
-                            snapMode: Slider.SnapAlways
-                            Layout.preferredHeight: 475
-                            Layout.alignment: Qt.AlignCenter
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 12
+                        Button {
+                            id: resetBtn
+                            text: "Anuluj"
                             Layout.fillWidth: true
-                            ToolTip {
-                                parent: rotationSlider.handle
-                                visible: rotationSlider.pressed
-                                text: Math.round(rotationSlider.value) + "°"
+                            Layout.preferredHeight: 50
+                            contentItem: Text {
+                                text: resetBtn.text
+                                font.pixelSize: 20
+                                font.weight: Font.Medium
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
                             background: Rectangle {
-                                implicitWidth: 40
-                                implicitHeight: 270
-                                x: rotationSlider.leftPadding + rotationSlider.availableWidth / 2 - width / 2
-                                y: rotationSlider.topPadding
-                                width: implicitWidth
-                                height: rotationSlider.availableHeight
-                                color: "transparent"
-                                Rectangle {
-                                    width: 4
-                                    height: parent.height
-                                    anchors.centerIn: parent
-                                    color: "#444"
-                                    radius: 2
-                                }
-                                Repeater {
-                                    model: 11
-                                    delegate: Rectangle {
-                                        property int angle: -150 + (index * 30)
-                                        width: angle === 0 ? 25 : 15
-                                        height: angle === 0 ? 5 : 2
-                                        color: angle === 0 ? "black" : "white"
-                                        x: (parent.width - width) / 2
-                                        y: ((index+1) / 12) * parent.height - height / 2
+                                color: resetBtn.pressed ? "#A34141" : (resetBtn.hovered ? "#C45454" : "#AB4141")
+                                radius: 4
+                            }
+                            onClicked: mainStack.pop()
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            CustomButton {
+                                id: undoBtn
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                                icon.source: "../Resources/undo.svg"
+                                iconSize: 35
+                                enabled: historyIndex > 0
+                                opacity: enabled ? 1.0 : 0.4
+                                tooltipText: "Cofnij"
+                                onClicked: {
+                                    if (historyIndex > 0) {
+                                        historyIndex--
+                                        applyState(history[historyIndex])
                                     }
                                 }
                             }
+                            CustomButton {
+                                id: redoBtn
+                                Layout.fillWidth: true
+                                enabled: historyIndex < history.length - 1
+                                opacity: enabled ? 1.0 : 0.4
+                                Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                                icon.source: "../Resources/undo.svg"
+                                iconSize: 35
+                                contentItem: Item {
+                                    Image {
+                                        anchors.centerIn: parent
+                                        width: redoBtn.iconSize
+                                        height: redoBtn.iconSize
+                                        sourceSize.width: redoBtn.iconSize
+                                        sourceSize.height: redoBtn.iconSize
+                                        source: redoBtn.icon.source
+                                        mirror: true
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        opacity: redoBtn.enabled ? 1.0 : 0.25
+                                    }
+                                }
+                                tooltipText: "Ponów"
+                                onClicked: {
+                                    if (historyIndex < history.length - 1) {
+                                        historyIndex++
+                                        applyState(history[historyIndex])
+                                    }
+                                }
+                            }
+                            CustomButton {
+                                id: actionBtn
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                                icon.source: "../Resources/transition-right.svg"
+                                iconSize: 35
+                                tooltipText: "Przytrzymaj żeby pokazać zmiany"
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        isShowingOriginal = true
+                                    }
+                                    onExited: {
+                                        isShowingOriginal = false
+                                    }
+                                }
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            spacing: 2
+                            Slider {
+                                id: rotationSlider
+                                from: -180
+                                onPressedChanged: if (!pressed) saveState()
+                                onMoved: {
+                                    workingInfo.angle = value
+                                }
+                                to: 180
+                                value: workingInfo.angle || 0
+                                stepSize: 10
+                                orientation: Qt.Vertical
+                                snapMode: Slider.SnapAlways
+                                Layout.preferredHeight: 475
+                                Layout.alignment: Qt.AlignCenter
+                                Layout.fillWidth: true
+                                ToolTip {
+                                    parent: rotationSlider.handle
+                                    visible: rotationSlider.pressed
+                                    text: Math.round(rotationSlider.value) + "°"
+                                }
+                                background: Rectangle {
+                                    implicitWidth: 40
+                                    implicitHeight: 270
+                                    x: rotationSlider.leftPadding + rotationSlider.availableWidth / 2 - width / 2
+                                    y: rotationSlider.topPadding
+                                    width: implicitWidth
+                                    height: rotationSlider.availableHeight
+                                    color: "transparent"
+                                    Rectangle {
+                                        width: 4
+                                        height: parent.height
+                                        anchors.centerIn: parent
+                                        color: "#444"
+                                        radius: 2
+                                    }
+                                    Repeater {
+                                        model: 11
+                                        delegate: Rectangle {
+                                            property int angle: -150 + (index * 30)
+                                            width: angle === 0 ? 25 : 15
+                                            height: angle === 0 ? 5 : 2
+                                            color: angle === 0 ? "black" : "white"
+                                            x: (parent.width - width) / 2
+                                            y: ((index+1) / 12) * parent.height - height / 2
+                                        }
+                                    }
+                                }
+                                handle: Rectangle {
+                                    y: rotationSlider.topPadding + rotationSlider.visualPosition * (rotationSlider.availableHeight - height)
+                                    x: rotationSlider.leftPadding + rotationSlider.availableWidth / 2 - width / 2
+                                    implicitWidth: 24
+                                    implicitHeight: 24
+                                    radius: 12
+                                    color: rotationSlider.pressed ? "#f0f0f0" : "#ffffff"
+                                    border.color: "#333"
+                                }
+                            }
+                        }
+                        GridLayout {
+                            columns: 2
+                            rows: 2
+                            Layout.fillWidth: true
+                            columnSpacing: 10
+                            rowSpacing: 10
+                            CustomButton {
+                                tooltipText: "Odbij horyzontalnie"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 50; Layout.preferredWidth: 50
+                                icon.source: "../Resources/arrow-separate.svg"
+                                onClicked: {
+                                    let data = JSON.parse(JSON.stringify(workingInfo));
+                                    data.flipH = (workingInfo.flipH === 1 ? -1 : 1)
+                                    workingInfo = data;
+                                    saveState()
+                                }
+                            }
+                            CustomButton {
+                                tooltipText: "Odbij wertykalnie"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 50; Layout.preferredWidth: 50
+                                icon.source: "../Resources/arrow-separate-vertical.svg"
+                                onClicked: {
+                                    let data = JSON.parse(JSON.stringify(workingInfo));
+                                    data.flipV = (workingInfo.flipV === 1 ? -1 : 1)
+                                    workingInfo = data;
+                                    saveState()
+                                }
+                            }
+                            CustomButton {
+                                tooltipText: "Przekręć o 90 stopni w lewo"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 50; Layout.preferredWidth: 50
+                                icon.source: "../Resources/rotate-camera-left.svg"
+                                onClicked: {
+                                    rotationSlider.value = (rotationSlider.value - 90)
+                                    workingInfo.angle = rotationSlider.value
+                                    let temp = workingInfo.w
+                                    workingInfo.w = workingInfo.h
+                                    workingInfo.h = temp
+                                    saveState()
+                                }
+                            }
+                            CustomButton {
+                                tooltipText: "Przekręć o 90 stopni w prawo"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 50; Layout.preferredWidth: 50
+                                icon.source: "../Resources/rotate-camera-right.svg"
+                                onClicked: {
+                                    rotationSlider.value = (rotationSlider.value + 90)
+                                    workingInfo.angle = rotationSlider.value
+                                    let temp = workingInfo.w
+                                    workingInfo.w = workingInfo.h
+                                    workingInfo.h = temp
+                                    saveState()
+                                }
+                            }
+                        }
+                        Item { Layout.fillHeight: true }
+                        Button {
+                            id: confirmBtn
+                            text: "Zatwierdź"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 50
+                            Layout.bottomMargin: 10
+                            contentItem: Text {
+                                text: confirmBtn.text
+                                font.pixelSize: 18
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                color: confirmBtn.pressed ? "#217dbb" : (confirmBtn.hovered ? "#3498db" : "#2980b9")
+                                radius: 4
+                            }
+                            onClicked: {
+                                const angleRad = (rotationSlider.value * Math.PI) / 180;
+                                const w = workingInfo.crop.w;
+                                const h = workingInfo.crop.h;
+                                const newWidth = Math.abs(w * Math.cos(angleRad)) + Math.abs(h * Math.sin(angleRad));
+                                const newHeight = Math.abs(w * Math.sin(angleRad)) + Math.abs(h * Math.cos(angleRad));
+                                const finalW = Math.round(newWidth);
+                                const finalH = Math.round(newHeight);
+                                workingInfo.w = finalW;
+                                workingInfo.h = finalH;
+                                saveState();
+                                manipulationFinished(workingInfo);
+                                mainStack.pop();
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    color: "#C0C3C4"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.margins: 0
+                    Item {
+                        id: imageContainer
+                        anchors.fill: parent
+                        clip: true
+                        MouseArea {
+                            id: dragArea
+                            anchors.fill: parent
+                            hoverEnabled: panMode
+                            propagateComposedEvents: true
+                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                            cursorShape: panMode ? Qt.OpenHandCursor : Qt.ArrowCursor
+                            onPositionChanged: (mouse) => {
+                                    if (pressed && (panMode || (mouse.buttons & Qt.MiddleButton))) {
+                                    photo.x += mouse.x - lastX
+                                    photo.y += mouse.y - lastY
+                                    lastX = mouse.x
+                                    lastY = mouse.y
+                                }
+                            }
+                            property real lastX: 0
+                            property real lastY: 0
+                            onPressed: (mouse) => {
+                                if (panMode || mouse.button === Qt.MiddleButton) {
+                                    lastX = mouse.x
+                                    lastY = mouse.y
+                                    mouse.accepted = true
+                                } else {
+                                    mouse.accepted = false
+                                }
+                            }
+                            WheelHandler {
+                                target: dragArea
+                                onWheel: (wheel) => {
+                                    let zoomStep = 0.1
+                                    if (wheel.angleDelta.y > 0) {
+                                        zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + zoomStep)
+                                    } else {
+                                        zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - zoomStep)
+                                    }
+                                }
+                            }
+                        }
+                        Image {
+                            id: photo
+                            source: workingInfo.path
+                            width: Math.min(implicitWidth, imageContainer.width)
+                            height: Math.min(implicitHeight, imageContainer.height)
+                            fillMode: Image.PreserveAspectFit
+                            rotation: isShowingOriginal ? originalInfo.angle : rotationSlider.value
+                            scale: zoomSlider.value
+                            transformOrigin: Item.Center
+                            transform: Scale {
+                                origin.x: photo.width / 2
+                                origin.y: photo.height / 2
+                                xScale: isShowingOriginal ? originalInfo.flipH : workingInfo.flipH
+                                yScale: isShowingOriginal ? originalInfo.flipV : workingInfo.flipV
+                            }
+                            Item {
+                                id: imagePixels
+                                x: (photo.width - photo.paintedWidth) / 2
+                                y: (photo.height - photo.paintedHeight) / 2
+                                width: photo.paintedWidth
+                                height: photo.paintedHeight
+                                Rectangle {
+                                    id: maskTop
+                                    x: 0; y: 0; width: parent.width; height: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                    color: "#80000000"
+                                }
+                                Rectangle {
+                                    id: maskBottom
+                                    x: 0; y: (isShowingOriginal ? (originalInfo.crop.y + originalInfo.crop.h) : (workingInfo.crop.y + workingInfo.crop.h))
+                                    width: parent.width
+                                    height: parent.height - y
+                                    color: "#80000000"
+                                }
+                                Rectangle {
+                                    id: maskLeft
+                                    x: 0;
+                                    y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                    width: (isShowingOriginal ? originalInfo.crop.x : workingInfo.crop.x)
+                                    height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
+                                    color: "#80000000"
+                                }
+                                Rectangle {
+                                    id: maskRight
+                                    x: (isShowingOriginal ? (originalInfo.crop.x + originalInfo.crop.w) : (workingInfo.crop.x + workingInfo.crop.w))
+                                    y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                    width: parent.width - x
+                                    height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
+                                    color: "#80000000"
+                                }
+                                Rectangle {
+                                    id: cropRect
+                                    x: (isShowingOriginal ? originalInfo.crop.x : workingInfo.crop.x)
+                                    y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                    width: (isShowingOriginal ? originalInfo.crop.w : workingInfo.crop.w)
+                                    height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
+                                    color: "transparent"
+                                    border.color: "black"
+                                    border.width: Math.max(1, 2 / photo.scale)
+                                    Rectangle {
+                                        id: topLeftHandle
+                                        width: 26 / photo.scale; height: 26 / photo.scale
+                                        color: "white"; radius: width/2; border.color: "black"
+                                        x: -width/2; y: -height/2
+                                        z: 10
+                                        MouseArea {
+                                            preventStealing: true
+                                            anchors.fill: parent
+                                            cursorShape: Qt.SizeFDiagCursor
+                                            onReleased: saveState()
+                                            onPositionChanged: (mouse) => {
+                                               if (pressed) {
+                                                   let pos = mapToItem(imagePixels, mouse.x, mouse.y)
+                                                   let anchorX = workingInfo.crop.x + workingInfo.crop.w
+                                                   let anchorY = workingInfo.crop.y + workingInfo.crop.h
+                                                   let newX = Math.max(0, Math.min(pos.x, anchorX - 10))
+                                                   let newY = Math.max(0, Math.min(pos.y, anchorY - 10))
+                                                   let info = clone(workingInfo)
+                                                   info.crop = {
+                                                       "x": newX,
+                                                       "y": newY,
+                                                       "w": anchorX - newX,
+                                                       "h": anchorY - newY
+                                                   }
+                                                   workingInfo = info
+                                               }
+                                            }
+                                        }
+                                    }
+                                    Rectangle {
+                                        id: bottomRightHandle
+                                        width: 26 / photo.scale; height: 26 / photo.scale
+                                        color: "white"; radius: width/2; border.color: "black"
+                                        x: cropRect.width - width / 2
+                                        y: cropRect.height - height / 2
+                                        z: 10
+                                        MouseArea {
+                                            preventStealing: true
+                                            anchors.fill: parent
+                                            cursorShape: Qt.SizeFDiagCursor
+                                            onReleased: saveState()
+                                            onPositionChanged: (mouse) => {
+                                               if (pressed) {
+                                                    let pos = mapToItem(imagePixels, mouse.x, mouse.y)
+                                                    let newW = Math.max(10, Math.min(pos.x - workingInfo.crop.x, imagePixels.width - workingInfo.crop.x))
+                                                    let newH = Math.max(10, Math.min(pos.y - workingInfo.crop.y, imagePixels.height - workingInfo.crop.y))
+                                                    let info = clone(workingInfo)
+                                                   info.crop = {
+                                                       "x": workingInfo.crop.x,
+                                                       "y": workingInfo.crop.y,
+                                                       "w": newW,
+                                                       "h": newH
+                                                   }
+                                                   workingInfo = info
+                                                }
+                                            }
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: 15 / photo.scale
+                                        cursorShape: Qt.SizeAllCursor
+                                        property real startXInImage: 0
+                                        property real startYInImage: 0
+                                        property real startCropX: 0
+                                        property real startCropY: 0
+                                        onReleased: saveState()
+                                        onPressed: (mouse) => {
+                                           let pos = mapToItem(imagePixels, mouse.x, mouse.y)
+                                           startXInImage = pos.x
+                                           startYInImage = pos.y
+                                           startCropX = workingInfo.crop.x
+                                           startCropY = workingInfo.crop.y
+                                        }
+                                        onPositionChanged: (mouse) => {
+                                           if (pressed) {
+                                                let currentPosInImage = mapToItem(imagePixels, mouse.x, mouse.y)
+                                                let diffX = currentPosInImage.x - startXInImage
+                                                let diffY = currentPosInImage.y - startYInImage
+                                               let info = clone(workingInfo)
+                                               info.crop = {
+                                                   "x": Math.max(0, Math.min(startCropX + diffX, imagePixels.width - workingInfo.crop.w)),
+                                                   "y": Math.max(0, Math.min(startCropY + diffY, imagePixels.height - workingInfo.crop.h)),
+                                                   "w": workingInfo.crop.w,
+                                                   "h": workingInfo.crop.h
+                                               }
+                                               workingInfo = info
+                                           }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 60
+                color: "#8E9191"
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 50
+                color: "#A0A3A3"
+                RowLayout {
+                    anchors.fill: parent
+                    Item { Layout.fillWidth: true }
+                    CustomButton {
+                        id: handBtn
+                        icon.source: "../Resources/drag-hand-gesture.svg"
+                        iconSize: 35
+                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                        tooltipText: "Przesuń obraz"
+                        background: Rectangle {
+                            color: panMode ? "#6E7171" : (handBtn.hovered ? "#9EAAAA" : "transparent")
+                            radius: 4
+                        }
+                        onClicked: panMode = !panMode
+                    }
+                    RowLayout {
+                        spacing: 5
+                        CustomButton {
+                            icon.source: "../Resources/zoom-out.svg"
+                            iconSize: 35
+                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                            onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                            tooltipText: "Oddal zdjęcie"
+                        }
+                        Slider {
+                            id: zoomSlider
+                            from: 0.1
+                            to: 5.0
+                            value: 1.0
+                            Layout.preferredWidth: 250
+                            ToolTip.visible: pressed
+                            ToolTip.delay: 0
+                            ToolTip.text: Math.round(value * 100) + "%"
+                            onPressedChanged: if (!pressed) saveState()
+                            background: Rectangle {
+                                x: zoomSlider.leftPadding
+                                y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
+                                implicitWidth: 120
+                                implicitHeight: 6
+                                width: zoomSlider.availableWidth
+                                height: implicitHeight
+                                radius: 2
+                                color: "#555"
+                            }
                             handle: Rectangle {
-                                y: rotationSlider.topPadding + rotationSlider.visualPosition * (rotationSlider.availableHeight - height)
-                                x: rotationSlider.leftPadding + rotationSlider.availableWidth / 2 - width / 2
-                                implicitWidth: 24
-                                implicitHeight: 24
-                                radius: 12
-                                color: rotationSlider.pressed ? "#f0f0f0" : "#ffffff"
+                                x: zoomSlider.leftPadding + zoomSlider.visualPosition * (zoomSlider.availableWidth - width)
+                                y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
+                                implicitWidth: 16
+                                implicitHeight: 16
+                                radius: 8
+                                color: "white"
                                 border.color: "#333"
                             }
                         }
-                    }
-                    GridLayout {
-                        columns: 2
-                        rows: 2
-                        Layout.fillWidth: true
-                        columnSpacing: 10
-                        rowSpacing: 10
                         CustomButton {
-                            tooltipText: "Odbij horyzontalnie"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 45
-                            icon.source: "../Resources/arrow-separate.svg"
-                        }
-                        CustomButton {
-                            tooltipText: "Odbij wertykalnie"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 45
-                            icon.source: "../Resources/arrow-separate-vertical.svg"
-                        }
-                        CustomButton {
-                            tooltipText: "Przekręć o 90 stopni w lewo"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 45
-                            icon.source: "../Resources/rotate-camera-left.svg"
-                        }
-                        CustomButton {
-                            tooltipText: "Przekręć o 90 stopni w prawo"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 45
-                            icon.source: "../Resources/rotate-camera-right.svg"
+                            icon.source: "../Resources/zoom-in.svg"
+                            iconSize: 35
+                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                            onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                            tooltipText: "Przybliż zdjęcie"
                         }
                     }
-                    Item { Layout.fillHeight: true }
-                    Button {
-                        id: confirmBtn
-                        text: "Zatwierdź"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        Layout.bottomMargin: 10
-                        contentItem: Text {
-                            text: confirmBtn.text
-                            font.pixelSize: 18
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: confirmBtn.pressed ? "#217dbb" : (confirmBtn.hovered ? "#3498db" : "#2980b9")
-                            radius: 4
-                        }
-                        onClicked: {
-                            mainStack.pop()
-                        }
-                    }
-                }
-            }
-            Rectangle {
-                color: "#C0C3C4"
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.margins: 0
-                Item {
-                    id: imageContainer
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    Image {
-                        id: photo
-                        source: imageSource
-                        anchors.centerIn: parent
-                        width: Math.min(implicitWidth, imageContainer.width)
-                        height: Math.min(implicitHeight, imageContainer.height)
-                        fillMode: Image.PreserveAspectFit
-                        rotation: rotationSlider.value
-                    }
-                    Rectangle {
-                        x: imgX; y: imgY; width: cropRect.x - imgX; height: imgH
-                        color: "#80000000"; visible: width > 0
-                    }
-                    Rectangle {
-                        x: cropRect.x + cropRect.width; y: imgY
-                        width: (imgX + imgW) - (cropRect.x + cropRect.width)
-                        height: imgH; color: "#80000000"; visible: width > 0
-                    }
-                    Rectangle {
-                        x: cropRect.x; y: imgY; width: cropRect.width
-                        height: cropRect.y - imgY; color: "#80000000"; visible: height > 0
-                    }
-                    Rectangle {
-                        x: cropRect.x; y: cropRect.y + cropRect.height; width: cropRect.width
-                        height: (imgY + imgH) - (cropRect.y + cropRect.height)
-                        color: "#80000000"; visible: height > 0
-                    }
-                    Rectangle {
-                        id: cropRect
-                        x: cropX
-                        y: cropY
-                        width: cropWidth
-                        height: cropHeight
-                        color: "transparent"
-                        border.color: "black"
-                        border.width: 2
-                        Rectangle {
-                            width: 30; height: 30
-                            color: "black"; radius: 15
-                            anchors.right: parent.right; anchors.bottom: parent.bottom
-                            anchors.margins: -15
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.SizeFDiagCursor
-                                onPositionChanged: {
-                                    if (pressed) {
-                                        let maxAllowedW = (imgX + imgW) - cropRect.x
-                                        let maxAllowedH = (imgY + imgH) - cropRect.y
-                                        cropWidth = Math.min(maxAllowedW, Math.max(50, cropRect.width + mouseX))
-                                        cropHeight = Math.min(maxAllowedH, Math.max(50, cropRect.height + mouseY))
-                                    }
-                                }
-                            }
-                        }
-                        Rectangle {
-                            width: 30; height: 30
-                            color: "black"; radius: 15
-                            anchors.left: parent.left; anchors.top: parent.top
-                            anchors.margins: -15
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.SizeAllCursor
-                                onPositionChanged: {
-                                    if (pressed) {
-                                        let newX = cropX + mouseX
-                                        let newY = cropY + mouseY
-                                        let clampedX = Math.max(imgX, Math.min(newX, cropX + cropWidth - 50))
-                                        let clampedY = Math.max(imgY, Math.min(newY, cropY + cropHeight - 50))
-                                        let diffX = clampedX - cropX
-                                        let diffY = clampedY - cropY
-                                        cropWidth -= diffX
-                                        cropHeight -= diffY
-                                        cropX = clampedX
-                                        cropY = clampedY
-                                    }
-                                }
-                            }
-                        }
+                    CustomButton {
+                        id: fullscreenBtn
+                        icon.source: "../Resources/maximize.svg"
+                        iconSize: 35
+                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                        tooltipText: "Dopasuj do ekranu"
+                        onClicked: zoomToFit()
                     }
                 }
             }
         }
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 60
-            color: "#8E9191"
-        }
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#A0A3A3"
-            RowLayout {
-                anchors.fill: parent
-                Item { Layout.fillWidth: true }
-                CustomButton {
-                    icon.source: "../Resources/drag-hand-gesture.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                    tooltipText: "Włącz tryb przesuwania zdjęcia"
-                }
-                RowLayout {
-                    spacing: 5
-                    CustomButton {
-                        icon.source: "../Resources/zoom-in.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
-                        tooltipText: "Przybliż zdjęcie"
-                    }
-                    Slider {
-                        id: zoomSlider
-                        from: 0.1
-                        to: 3.0
-                        value: 1.0
-                        Layout.preferredWidth: 120
-                        ToolTip.visible: pressed
-                        ToolTip.delay: 0
-                        ToolTip.text: Math.round(value * 100) + "%"
-                        background: Rectangle {
-                            x: zoomSlider.leftPadding
-                            y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 120
-                            implicitHeight: 6
-                            width: zoomSlider.availableWidth
-                            height: implicitHeight
-                            radius: 2
-                            color: "#555"
-                        }
-                        handle: Rectangle {
-                            x: zoomSlider.leftPadding + zoomSlider.visualPosition * (zoomSlider.availableWidth - width)
-                            y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 16
-                            implicitHeight: 16
-                            radius: 8
-                            color: "white"
-                            border.color: "#333"
-                        }
-                    }
-                    CustomButton {
-                        icon.source: "../Resources/zoom-out.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
-                        tooltipText: "Oddal zdjęcie"
-                    }
-                }
-                CustomButton {
-                    icon.source: "../Resources/maximize.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                    tooltipText: "Włącz tryb pełnego ekranu"
-                }
+        function zoomToFit() {
+            if (photo.status !== Image.Ready) return
+            let containerW = imageContainer.width
+            let containerH = imageContainer.height
+            let finalScale = 1.0
+            if (photo.width > 0 && photo.height > 0) {
+                let currentRatioX = containerW /(photo.width+13)
+                let currentRatioY = containerH /(photo.height+13)
+                finalScale = Math.min(currentRatioX, currentRatioY)
             }
+            zoomSlider.value = finalScale
+            photo.x = (imageContainer.width - photo.width) / 2
+            photo.y = (imageContainer.height - photo.height) / 2
         }
     }
-}

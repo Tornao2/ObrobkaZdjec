@@ -24,6 +24,7 @@ Rectangle {
         currentMetadata = data
         originalMetadata = Object.assign({}, data)
     }
+
     function commitState(path) {
         let state = {
             "path": path,
@@ -34,6 +35,7 @@ Rectangle {
         history = newHistory
         historyIndex = history.length - 1
     }
+    function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     Component.onCompleted: {
         if (originalImagePath === "") {
             originalImagePath = imagePath
@@ -54,7 +56,16 @@ Rectangle {
             "shutterSpeed": "1/200s",
             "artist": "Jan Kowalski",
             "copyright": "© 2024 Kowalski Studio. All rights reserved.",
-            "description": "Sesja plenerowa - Park Narodowy, zachód słońca."
+            "description": "Sesja plenerowa - Park Narodowy, zachód słońca.",
+            "flipH" : 1,
+            "flipV" : 1,
+            "angle" : 0,
+            "crop": {
+                "x": 0,
+                "y": 0,
+                "w": photo.implicitWidth,
+                "h": photo.implicitHeight
+            }
         }
         currentMetadata = initialData
         originalMetadata = Object.assign({}, initialData)
@@ -205,9 +216,16 @@ Rectangle {
                             tooltipText: "Cofnij"
                             onClicked: {
                                 historyIndex--
-                                let state = history[historyIndex]
-                                editorScreen.imagePath = state.path
-                                editorScreen.currentMetadata = state.metadata
+                                let state = JSON.parse(JSON.stringify(history[historyIndex]));
+                                editorScreen.imagePath = JSON.parse(JSON.stringify(state.path));
+                                editorScreen.currentMetadata = JSON.parse(JSON.stringify(state.metadata));
+                                photo.rotation = currentMetadata.angle
+                                photo.sourceClipRect = Qt.rect(
+                                    currentMetadata.crop.x,
+                                    currentMetadata.crop.y,
+                                    currentMetadata.crop.w,
+                                    currentMetadata.crop.h
+                                )
                             }
                         }
                         CustomButton {
@@ -235,9 +253,16 @@ Rectangle {
                             tooltipText: "Ponów"
                             onClicked: {
                                 historyIndex++
-                                let state = history[historyIndex]
-                                editorScreen.imagePath = state.path
-                                editorScreen.currentMetadata = state.metadata
+                                let state = JSON.parse(JSON.stringify(history[historyIndex]));
+                                imagePath = JSON.parse(JSON.stringify(state.path));
+                                currentMetadata = JSON.parse(JSON.stringify(state.metadata));
+                                photo.rotation = currentMetadata.angle
+                                photo.sourceClipRect = Qt.rect(
+                                    currentMetadata.crop.x,
+                                    currentMetadata.crop.y,
+                                    currentMetadata.crop.w,
+                                    currentMetadata.crop.h
+                                )
                             }
                         }
                         CustomButton {
@@ -255,11 +280,25 @@ Rectangle {
                                     photo.source = editorScreen.originalImagePath
                                     editorScreen.tempMetadata = editorScreen.currentMetadata
                                     editorScreen.currentMetadata = editorScreen.originalMetadata
+                                    photo.rotation = currentMetadata.angle
+                                    photo.sourceClipRect = Qt.rect(
+                                        currentMetadata.crop.x,
+                                        currentMetadata.crop.y,
+                                        currentMetadata.crop.w,
+                                        currentMetadata.crop.h
+                                    )
                                 }
                                 onExited: {
                                     isShowingOriginal = false
                                     photo.source = editorScreen.imagePath
                                     editorScreen.currentMetadata = editorScreen.tempMetadata
+                                    photo.rotation = currentMetadata.angle
+                                    photo.sourceClipRect = Qt.rect(
+                                        currentMetadata.crop.x,
+                                        currentMetadata.crop.y,
+                                        currentMetadata.crop.w,
+                                        currentMetadata.crop.h
+                                    )
                                 }
                             }
                         }
@@ -293,10 +332,11 @@ Rectangle {
                         width: Math.min(implicitWidth, imageContainer.width)
                         height: Math.min(implicitHeight, imageContainer.height)
                         fillMode: Image.PreserveAspectFit
-                        Behavior on x { enabled: !dragArea.drag.active; NumberAnimation { duration: 200 } }
-                        Behavior on y { enabled: !dragArea.drag.active; NumberAnimation { duration: 200 } }
-                        Behavior on scale {
-                            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+                        transform: Scale {
+                            origin.x: photo.width / 2
+                            origin.y: photo.height / 2
+                            xScale: isShowingOriginal ? originalMetadata.flipH : currentMetadata.flipH
+                            yScale: isShowingOriginal ? originalMetadata.flipV : currentMetadata.flipV
                         }
                         onStatusChanged: {
                             if (status === Image.Ready) {
@@ -309,6 +349,7 @@ Rectangle {
                             }
                         }
                     }
+
                     MouseArea {
                         id: dragArea
                         anchors.fill: parent
@@ -371,7 +412,19 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        mainStack.push("ManipulationScreen.qml", { "imageSource": imagePath })
+                        let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": editorScreen.currentMetadata })
+                        manipPage.manipulationFinished.connect(function(info) {
+                            photo.autoTransform = true
+                            currentMetadata = info
+                            photo.rotation = currentMetadata.angle
+                            photo.sourceClipRect = Qt.rect(
+                                currentMetadata.crop.x,
+                                currentMetadata.crop.y,
+                                currentMetadata.crop.w,
+                                currentMetadata.crop.h
+                            )
+                            commitState(editorScreen.imagePath)
+                        })
                     }
                 }
                 CustomButton {
@@ -480,7 +533,7 @@ Rectangle {
                         opacity: 0.7
                     }
                     Text {
-                        text: photo.implicitWidth + " x " + photo.implicitHeight
+                        text: currentMetadata.w + " x " + currentMetadata.h
                         font.pixelSize: 20
                         color: "#222"
                         verticalAlignment: Text.AlignVCenter
@@ -702,7 +755,16 @@ Rectangle {
                 "shutterSpeed": "1/200s",
                 "artist": "Jan Kowalski",
                 "copyright": "© 2024 Kowalski Studio. All rights reserved.",
-                "description": "Sesja plenerowa - Park Narodowy, zachód słońca."
+                "description": "Sesja plenerowa - Park Narodowy, zachód słońca.",
+                "flipH" : 1,
+                "flipV" : 1,
+                "angle" : 0,
+                "crop": {
+                    "x": 0,
+                    "y": 0,
+                    "w": photo.implicitWidth,
+                    "h": photo.implicitHeight
+                }
             }
             currentMetadata = initialData
             editorScreen.panMode = false
@@ -734,6 +796,21 @@ Rectangle {
             commitState(editorScreen.imagePath)
             zoomSlider.value = 1.0
             editorScreen.panMode = false
+            photo.rotation = 0
+            let info = clone(currentMetadata)
+            info.crop = {
+                "x": 0,
+                "y": 0,
+                "w": currentMetadata.w,
+                "h": currentMetadata.h
+            }
+            currentMetadata = info
+            photo.sourceClipRect = Qt.rect(
+                currentMetadata.crop.x,
+                currentMetadata.crop.y,
+                currentMetadata.crop.w,
+                currentMetadata.crop.h
+            )
             zoomToFit()
             let startPage = mainStack.get(0)
             if (startPage && typeof startPage.dodajDoHistorii === "function") {
@@ -747,9 +824,7 @@ Rectangle {
         let imgH = photo.sourceSize.height
         let containerW = imageContainer.width
         let containerH = imageContainer.height
-        let scaleX = containerW / imgW
-        let scaleY = containerH / imgH
-        let finalScale = Math.min(scaleX, scaleY)
+        let finalScale = 1.0
         if (photo.width > 0 && photo.height > 0) {
             let currentRatioX = containerW / photo.width
             let currentRatioY = containerH / photo.height
