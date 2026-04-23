@@ -25,9 +25,8 @@ Rectangle {
         originalMetadata = Object.assign({}, data)
     }
 
-    function commitState(path) {
+    function commitState() {
         let state = {
-            "path": path,
             "metadata": Object.assign({}, currentMetadata)
         }
         let newHistory = history.slice(0, historyIndex + 1)
@@ -57,6 +56,11 @@ Rectangle {
             "artist": "Jan Kowalski",
             "copyright": "© 2024 Kowalski Studio. All rights reserved.",
             "description": "Sesja plenerowa - Park Narodowy, zachód słońca.",
+            "contrast": 0,
+            "saturation": 0,
+            "exposition": 0,
+            "temperature": 0,
+            "blur": 0,
             "flipH" : 1,
             "flipV" : 1,
             "angle" : 0,
@@ -69,7 +73,7 @@ Rectangle {
         }
         currentMetadata = initialData
         originalMetadata = Object.assign({}, initialData)
-        commitState(editorScreen.imagePath)
+        commitState()
         zoomToFit()
     }
     Timer {
@@ -81,7 +85,7 @@ Rectangle {
                 saveProgressBar.value += 0.02
             } else {
                 saveTimer.stop()
-                editorScreen.isSaving = false
+                isSaving = false
                 saveSuccessMessage.open()
                 saveProgressBar.value = 0
             }
@@ -91,7 +95,7 @@ Rectangle {
         id: printTimer
         interval: 2500
         onTriggered: {
-            editorScreen.isPrinting = false
+            isPrinting = false
             printSuccessMessage.open()
         }
     }
@@ -104,7 +108,7 @@ Rectangle {
             Layout.preferredHeight: 50
             color: "#8E9191"
             Text {
-                text: editorScreen.currentMetadata.name || ""
+                text: currentMetadata.name || ""
                 anchors.centerIn: parent
                 font.pixelSize: 20; color: "black"
             }
@@ -125,8 +129,8 @@ Rectangle {
                     icon.source: "../Resources/printer.svg"
                     iconSize: 35
                     tooltipText: "Drukuj"
-                    enabled: !editorScreen.isPrinting
-                    opacity: editorScreen.isPrinting ? (printingAnim.running ? 1.0 : 0.6) : 1.0
+                    enabled: !isPrinting
+                    opacity: isPrinting ? (printingAnim.running ? 1.0 : 0.6) : 1.0
                     SequentialAnimation on opacity {
                         id: printingAnim
                         running: editorScreen.isPrinting
@@ -136,7 +140,7 @@ Rectangle {
                     }
 
                     onClicked: {
-                        editorScreen.isPrinting = true
+                        isPrinting = true
                         printTimer.start()
                     }
                 }
@@ -164,9 +168,9 @@ Rectangle {
                     icon.source: "../Resources/floppy-disk.svg"
                     iconSize: 35
                     tooltipText: "Zapisz"
-                    enabled: !editorScreen.isSaving && !editorScreen.isPrinting
+                    enabled: !isSaving && !isPrinting
                         onClicked: {
-                            editorScreen.isSaving = true
+                            isSaving = true
                             saveTimer.start()
                         }
                 }
@@ -211,14 +215,13 @@ Rectangle {
                             Layout.preferredWidth: 50; Layout.preferredHeight: 50
                             icon.source: "../Resources/undo.svg"
                             iconSize: 35
-                            enabled: editorScreen.historyIndex > 0
+                            enabled: historyIndex > 0
                             opacity: enabled ? 1.0 : 0.4
                             tooltipText: "Cofnij"
                             onClicked: {
                                 historyIndex--
                                 let state = JSON.parse(JSON.stringify(history[historyIndex]));
-                                editorScreen.imagePath = JSON.parse(JSON.stringify(state.path));
-                                editorScreen.currentMetadata = JSON.parse(JSON.stringify(state.metadata));
+                                currentMetadata = JSON.parse(JSON.stringify(state.metadata));
                                 photo.rotation = currentMetadata.angle
                                 photo.sourceClipRect = Qt.rect(
                                     currentMetadata.crop.x,
@@ -231,7 +234,7 @@ Rectangle {
                         CustomButton {
                             id: redoBtn
                             Layout.fillWidth: true
-                            enabled: editorScreen.historyIndex < editorScreen.history.length - 1
+                            enabled: historyIndex < history.length - 1
                             opacity: enabled ? 1.0 : 0.4
                             Layout.preferredWidth: 50; Layout.preferredHeight: 50
                             icon.source: "../Resources/undo.svg"
@@ -254,7 +257,6 @@ Rectangle {
                             onClicked: {
                                 historyIndex++
                                 let state = JSON.parse(JSON.stringify(history[historyIndex]));
-                                imagePath = JSON.parse(JSON.stringify(state.path));
                                 currentMetadata = JSON.parse(JSON.stringify(state.metadata));
                                 photo.rotation = currentMetadata.angle
                                 photo.sourceClipRect = Qt.rect(
@@ -277,9 +279,9 @@ Rectangle {
                                 hoverEnabled: true
                                 onEntered: {
                                     isShowingOriginal = true
-                                    photo.source = editorScreen.originalImagePath
-                                    editorScreen.tempMetadata = editorScreen.currentMetadata
-                                    editorScreen.currentMetadata = editorScreen.originalMetadata
+                                    photo.source = originalImagePath
+                                    tempMetadata = currentMetadata
+                                    currentMetadata = originalMetadata
                                     photo.rotation = currentMetadata.angle
                                     photo.sourceClipRect = Qt.rect(
                                         currentMetadata.crop.x,
@@ -290,8 +292,8 @@ Rectangle {
                                 }
                                 onExited: {
                                     isShowingOriginal = false
-                                    photo.source = editorScreen.imagePath
-                                    editorScreen.currentMetadata = editorScreen.tempMetadata
+                                    photo.source = imagePath
+                                    currentMetadata = tempMetadata
                                     photo.rotation = currentMetadata.angle
                                     photo.sourceClipRect = Qt.rect(
                                         currentMetadata.crop.x,
@@ -324,7 +326,7 @@ Rectangle {
                     clip: true
                     Image {
                         id: photo
-                        source: isShowingOriginal ? editorScreen.originalImagePath : editorScreen.imagePath
+                        source: isShowingOriginal ? originalImagePath : imagePath
                         x: (parent.width - width) / 2
                         y: (parent.height - height) / 2
                         scale: zoomSlider.value
@@ -340,12 +342,12 @@ Rectangle {
                         }
                         onStatusChanged: {
                             if (status === Image.Ready) {
-                                let updated = Object.assign({}, editorScreen.currentMetadata)
+                                let updated = Object.assign({}, currentMetadata)
                                 updated.name = source.toString().split("/").pop()
                                 updated.path = source.toString()
                                 updated.w = sourceSize.width
                                 updated.h = sourceSize.height
-                                editorScreen.currentMetadata = updated
+                                currentMetadata = updated
                             }
                         }
                     }
@@ -354,9 +356,9 @@ Rectangle {
                         id: dragArea
                         anchors.fill: parent
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-                        cursorShape: (editorScreen.panMode || pressedButtons & Qt.MiddleButton)
+                        cursorShape: (panMode || pressedButtons & Qt.MiddleButton)
                                      ? Qt.ClosedHandCursor : Qt.ArrowCursor
-                        drag.target: (editorScreen.panMode || pressedButtons & Qt.MiddleButton) ? photo : null
+                        drag.target: (panMode || pressedButtons & Qt.MiddleButton) ? photo : null
                         drag.axis: Drag.XAndYAxis
                         drag.minimumX: -photo.width / 2
                         drag.maximumX: imageContainer.width - photo.width / 2
@@ -412,7 +414,7 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": editorScreen.currentMetadata })
+                        let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": currentMetadata })
                         manipPage.manipulationFinished.connect(function(info) {
                             photo.autoTransform = true
                             currentMetadata = info
@@ -423,7 +425,7 @@ Rectangle {
                                 currentMetadata.crop.w,
                                 currentMetadata.crop.h
                             )
-                            commitState(editorScreen.imagePath)
+                            commitState()
                         })
                     }
                 }
@@ -449,6 +451,13 @@ Rectangle {
                             color: "black"
                             anchors.verticalCenter: parent.verticalCenter
                         }
+                    }
+                    onClicked: {
+                        let correctPage = mainStack.push("CorrectionScreen.qml", { "imageInfo": currentMetadata })
+                        correctPage.correctionFinished.connect(function(info) {
+                            currentMetadata = info
+                            commitState()
+                        })
                     }
                 }
                 CustomButton {
@@ -513,11 +522,11 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     tooltipText: "Edytuj metadane"
                     onClicked: {
-                        let pg = mainStack.push("MetadataScreen.qml", { "imageInfo": editorScreen.currentMetadata })
+                        let pg = mainStack.push("MetadataScreen.qml", { "imageInfo": currentMetadata })
                         pg.metadataUpdated.connect(function(updatedData) {
                             if (JSON.stringify(currentMetadata) !== JSON.stringify(updatedData)) {
                                 currentMetadata = updatedData
-                                commitState(editorScreen.imagePath)
+                                commitState()
                             }
                         })
                     }
@@ -565,10 +574,10 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     tooltipText: "Przesuń obraz"
                     background: Rectangle {
-                        color: editorScreen.panMode ? "#6E7171" : (handBtn.hovered ? "#9EAAAA" : "transparent")
+                        color: panMode ? "#6E7171" : (handBtn.hovered ? "#9EAAAA" : "transparent")
                         radius: 4
                     }
-                    onClicked: editorScreen.panMode = !editorScreen.panMode
+                    onClicked: panMode = !panMode
                 }
                 RowLayout {
                     spacing: 5
@@ -631,7 +640,7 @@ Rectangle {
         id: printingOverlay
         color: "#000000"
         anchors.fill: parent
-        opacity: editorScreen.isPrinting ? 0.6 : 0.0
+        opacity: isPrinting ? 0.6 : 0.0
         visible: opacity > 0
         z: 100
         Behavior on opacity {
@@ -643,7 +652,7 @@ Rectangle {
         }
         BusyIndicator {
             anchors.centerIn: parent
-            running: editorScreen.isPrinting
+            running: isPrinting
         }
         Text {
             text: "Drukowanie..."
@@ -658,7 +667,7 @@ Rectangle {
         id: saveOverlay
         anchors.fill: parent
         color: "#000000"
-        opacity: editorScreen.isSaving ? 0.7 : 0.0
+        opacity: isSaving ? 0.7 : 0.0
         visible: opacity > 0
         z: 110
         Behavior on opacity { NumberAnimation { duration: 300 } }
@@ -709,9 +718,9 @@ Rectangle {
     ConfirmDialog {
         id: deleteConfirm
         isAlert: false
-        message: "Czy na pewno chcesz usunąć zdjęcie: " + editorScreen.imagePath.split("/").pop() + "?"
+        message: "Czy na pewno chcesz usunąć zdjęcie: " + imagePath.split("/").pop() + "?"
         onConfirmed: {
-            let pathToRemove = editorScreen.imagePath
+            let pathToRemove = imagePath
             let startPage = mainStack.get(0)
             if (startPage && typeof startPage.usunZHistorii === "function") {
                 startPage.usunZHistorii(pathToRemove)
@@ -733,16 +742,16 @@ Rectangle {
         message: "Czy na pewno chcesz podmienić obecne zdjęcie na: " + importFileDialog.selectedFile.toString().split("/").pop() + "?"
         onConfirmed: {
             let newPath = importFileDialog.selectedFile.toString()
-            editorScreen.imagePath = newPath
-            editorScreen.originalImagePath = newPath
-            editorScreen.history = []
-            editorScreen.historyIndex = -1
+            imagePath = newPath
+            originalImagePath = newPath
+            history = []
+            historyIndex = -1
             photo.source = ""
-            photo.source = editorScreen.imagePath
+            photo.source = imagePath
             let initialData = {
-                "path": editorScreen.imagePath,
-                "name": editorScreen.imagePath.split("/").pop(),
-                "format": editorScreen.imagePath.split(".").pop(),
+                "path": imagePath,
+                "name": imagePath.split("/").pop(),
+                "format": imagePath.split(".").pop(),
                 "w": photo.implicitWidth,
                 "h": photo.implicitHeight,
                 "dpi": "300 dpi",
@@ -756,6 +765,11 @@ Rectangle {
                 "artist": "Jan Kowalski",
                 "copyright": "© 2024 Kowalski Studio. All rights reserved.",
                 "description": "Sesja plenerowa - Park Narodowy, zachód słońca.",
+                "contrast": 0,
+                "saturation": 0,
+                "exposition": 0,
+                "temperature": 0,
+                "blur": 0,
                 "flipH" : 1,
                 "flipV" : 1,
                 "angle" : 0,
@@ -767,9 +781,9 @@ Rectangle {
                 }
             }
             currentMetadata = initialData
-            editorScreen.panMode = false
+            panMode = false
             originalMetadata = initialData
-            commitState(newPath)
+            commitState()
             zoomSlider.value = 1.0
             zoomToFit()
             let startPage = mainStack.get(0)
@@ -789,13 +803,13 @@ Rectangle {
         title: "Potwierdź reset"
         message: "Czy na pewno chcesz cofnąć wszystkie zmiany i powrócić do oryginalnego zdjęcia?"
         onConfirmed: {
-            editorScreen.imagePath = editorScreen.originalImagePath
-            editorScreen.currentMetadata = editorScreen.originalMetadata
-            editorScreen.history = []
-            editorScreen.historyIndex = -1
-            commitState(editorScreen.imagePath)
+            imagePath = originalImagePath
+            currentMetadata = originalMetadata
+            history = []
+            historyIndex = -1
+            commitState()
             zoomSlider.value = 1.0
-            editorScreen.panMode = false
+            panMode = false
             photo.rotation = 0
             let info = clone(currentMetadata)
             info.crop = {
@@ -814,7 +828,7 @@ Rectangle {
             zoomToFit()
             let startPage = mainStack.get(0)
             if (startPage && typeof startPage.dodajDoHistorii === "function") {
-                startPage.dodajDoHistorii(editorScreen.imagePath)
+                startPage.dodajDoHistorii(imagePath)
             }
         }
     }
@@ -835,10 +849,32 @@ Rectangle {
         photo.y = (imageContainer.height - photo.height) / 2
     }
     function triggerEditorAction(actionName) {
-        if (actionName === "Crop") {
-
-        } else if (actionName === "Brightness") {
-            //PODODAWAĆ TUTAJ LGOIKĘ PRZECHODZENIA POTEM
+        if (actionName === "Obróć w prawo") {
+            if (currentMetadata.angle > 90) return;
+            currentMetadata.angle = currentMetadata.angle + 90
+            photo.rotation = currentMetadata.angle
+            let temp = currentMetadata.w
+            currentMetadata.w = currentMetadata.h
+            currentMetadata.h = temp
+            commitState()
+        } else if (actionName === "Obróć w lewo") {
+            if (currentMetadata.angle < -90) return;
+            currentMetadata.angle = currentMetadata.angle - 90
+            photo.rotation = currentMetadata.angle
+            let temp = currentMetadata.w
+            currentMetadata.w = currentMetadata.h
+            currentMetadata.h = temp
+            commitState()
+        } else if (actionName === "Odbij w bok") {
+            let data = JSON.parse(JSON.stringify(currentMetadata));
+            data.flipH = (currentMetadata.flipH === 1 ? -1 : 1)
+            currentMetadata = data;
+            commitState()
+        } else if (actionName === "Odbij wertykalnie") {
+            let data = JSON.parse(JSON.stringify(currentMetadata));
+            data.flipV = (currentMetadata.flipV === 1 ? -1 : 1)
+            currentMetadata = data;
+            commitState()
         }
 
     }

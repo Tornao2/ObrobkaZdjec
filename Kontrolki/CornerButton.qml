@@ -83,23 +83,18 @@ Button {
                 contentItem: Text { text: "Obróć w prawo"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
                 background: Rectangle { color: parent.highlighted ? "#9DA1A1" : "transparent"; radius: 4; anchors.fill: parent; anchors.margins: 4 }
             }
-        }
-        Menu {
-            title: "Korekta"
-            x: parent.width; y: 0
-            background: Rectangle { implicitWidth: 200; color: "#8E9191"; radius: 6; border.color: "#7A7D7D" }
             MenuItem {
-                text: "Jasność"; onTriggered: control.assignedFunction = "Jasność"
+                text: "Odbij w bok"; onTriggered: control.assignedFunction = "Odbij w bok"
                 implicitHeight: 45
                 arrow: null; indicator: null
-                contentItem: Text { text: "Jasność"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
+                contentItem: Text { text: "Odbij w bok"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
                 background: Rectangle { color: parent.highlighted ? "#9DA1A1" : "transparent"; radius: 4; anchors.fill: parent; anchors.margins: 4 }
             }
             MenuItem {
-                text: "Kontrast"; onTriggered: control.assignedFunction = "Kontrast"
+                text: "Odbij wertykalnie"; onTriggered: control.assignedFunction = "Odbij wertykalnie"
                 implicitHeight: 45
                 arrow: null; indicator: null
-                contentItem: Text { text: "Kontrast"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
+                contentItem: Text { text: "Odbij wertykalnie"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
                 background: Rectangle { color: parent.highlighted ? "#9DA1A1" : "transparent"; radius: 4; anchors.fill: parent; anchors.margins: 4 }
             }
         }
