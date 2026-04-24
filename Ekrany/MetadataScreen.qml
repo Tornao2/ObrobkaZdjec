@@ -472,6 +472,11 @@ Rectangle {
                                             "flipH" : workingInfo.flipH,
                                             "flipV" : workingInfo.flipV,
                                             "angle" : workingInfo.angle,
+                                            "contrast": workingInfo.contrast,
+                                            "saturation": workingInfo.saturation,
+                                            "exposition": workingInfo.exposition,
+                                            "temperature": workingInfo.temperature,
+                                            "blur": workingInfo.blur,
                                             "crop": {
                                                 "x": workingInfo.crop.x || 0,
                                                 "y": workingInfo.crop.y || 0,

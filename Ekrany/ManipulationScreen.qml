@@ -2,6 +2,7 @@
     import QtQuick.Layouts
     import QtQuick.Controls
     import "../Kontrolki"
+    import QtQuick.Effects
 
     Rectangle {
         id: manipulationScreen
@@ -389,139 +390,159 @@
                                 xScale: isShowingOriginal ? originalInfo.flipH : workingInfo.flipH
                                 yScale: isShowingOriginal ? originalInfo.flipV : workingInfo.flipV
                             }
-                            Item {
-                                id: imagePixels
-                                x: (photo.width - photo.paintedWidth) / 2
-                                y: (photo.height - photo.paintedHeight) / 2
-                                width: photo.paintedWidth
-                                height: photo.paintedHeight
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                visible: true
+                                contrast: isShowingOriginal ? (originalInfo.contrast/100) : (workingInfo.contrast / 100)
+                                saturation: isShowingOriginal ? (originalInfo.saturation / 100) : (workingInfo.saturation / 100)
+                                brightness: isShowingOriginal ? (originalInfo.exposition / 100) : (workingInfo.exposition / 100)
+                                blurEnabled: isShowingOriginal ? (originalInfo.blur > 0) : (workingInfo.blur > 0)
+                                blur: isShowingOriginal ? (originalInfo.blur / 100) : (workingInfo.blur / 100)
+                                colorization: isShowingOriginal ? (originalInfo.temperature / 100) : Math.abs(workingInfo.temperature / 100)
+                                colorizationColor: isShowingOriginal ? (originalInfo.temperature > 0) : (workingInfo.temperature > 0) ? "#FFCC00" : "#00CCFF"
+                            }
+                        }
+                        Item {
+                            id: imagePixels
+                            x: photo.x + (photo.width - photo.paintedWidth) / 2
+                            y: photo.y + (photo.height - photo.paintedHeight) / 2
+                            width: photo.paintedWidth
+                            height: photo.paintedHeight
+                            scale: photo.scale
+                            rotation: photo.rotation
+                            transformOrigin: Item.Center
+                            transform: Scale {
+                                origin.x: photo.width / 2
+                                origin.y: photo.height / 2
+                                xScale: isShowingOriginal ? originalInfo.flipH : workingInfo.flipH
+                                yScale: isShowingOriginal ? originalInfo.flipV : workingInfo.flipV
+                            }
+                            Rectangle {
+                                id: maskTop
+                                x: 0; y: 0; width: parent.width; height: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                color: "#80000000"
+                            }
+                            Rectangle {
+                                id: maskBottom
+                                x: 0; y: (isShowingOriginal ? (originalInfo.crop.y + originalInfo.crop.h) : (workingInfo.crop.y + workingInfo.crop.h))
+                                width: parent.width
+                                height: parent.height - y
+                                color: "#80000000"
+                            }
+                            Rectangle {
+                                id: maskLeft
+                                x: 0;
+                                y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                width: (isShowingOriginal ? originalInfo.crop.x : workingInfo.crop.x)
+                                height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
+                                color: "#80000000"
+                            }
+                            Rectangle {
+                                id: maskRight
+                                x: (isShowingOriginal ? (originalInfo.crop.x + originalInfo.crop.w) : (workingInfo.crop.x + workingInfo.crop.w))
+                                y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                width: parent.width - x
+                                height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
+                                color: "#80000000"
+                            }
+                            Rectangle {
+                                id: cropRect
+                                x: (isShowingOriginal ? originalInfo.crop.x : workingInfo.crop.x)
+                                y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
+                                width: (isShowingOriginal ? originalInfo.crop.w : workingInfo.crop.w)
+                                height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
+                                color: "transparent"
+                                border.color: "black"
+                                border.width: Math.max(1, 2 / photo.scale)
                                 Rectangle {
-                                    id: maskTop
-                                    x: 0; y: 0; width: parent.width; height: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
-                                    color: "#80000000"
-                                }
-                                Rectangle {
-                                    id: maskBottom
-                                    x: 0; y: (isShowingOriginal ? (originalInfo.crop.y + originalInfo.crop.h) : (workingInfo.crop.y + workingInfo.crop.h))
-                                    width: parent.width
-                                    height: parent.height - y
-                                    color: "#80000000"
-                                }
-                                Rectangle {
-                                    id: maskLeft
-                                    x: 0;
-                                    y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
-                                    width: (isShowingOriginal ? originalInfo.crop.x : workingInfo.crop.x)
-                                    height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
-                                    color: "#80000000"
-                                }
-                                Rectangle {
-                                    id: maskRight
-                                    x: (isShowingOriginal ? (originalInfo.crop.x + originalInfo.crop.w) : (workingInfo.crop.x + workingInfo.crop.w))
-                                    y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
-                                    width: parent.width - x
-                                    height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
-                                    color: "#80000000"
-                                }
-                                Rectangle {
-                                    id: cropRect
-                                    x: (isShowingOriginal ? originalInfo.crop.x : workingInfo.crop.x)
-                                    y: (isShowingOriginal ? originalInfo.crop.y : workingInfo.crop.y)
-                                    width: (isShowingOriginal ? originalInfo.crop.w : workingInfo.crop.w)
-                                    height: (isShowingOriginal ? originalInfo.crop.h : workingInfo.crop.h)
-                                    color: "transparent"
-                                    border.color: "black"
-                                    border.width: Math.max(1, 2 / photo.scale)
-                                    Rectangle {
-                                        id: topLeftHandle
-                                        width: 26 / photo.scale; height: 26 / photo.scale
-                                        color: "white"; radius: width/2; border.color: "black"
-                                        x: -width/2; y: -height/2
-                                        z: 10
-                                        MouseArea {
-                                            preventStealing: true
-                                            anchors.fill: parent
-                                            cursorShape: Qt.SizeFDiagCursor
-                                            onReleased: saveState()
-                                            onPositionChanged: (mouse) => {
-                                               if (pressed) {
-                                                   let pos = mapToItem(imagePixels, mouse.x, mouse.y)
-                                                   let anchorX = workingInfo.crop.x + workingInfo.crop.w
-                                                   let anchorY = workingInfo.crop.y + workingInfo.crop.h
-                                                   let newX = Math.max(0, Math.min(pos.x, anchorX - 10))
-                                                   let newY = Math.max(0, Math.min(pos.y, anchorY - 10))
-                                                   let info = clone(workingInfo)
-                                                   info.crop = {
-                                                       "x": newX,
-                                                       "y": newY,
-                                                       "w": anchorX - newX,
-                                                       "h": anchorY - newY
-                                                   }
-                                                   workingInfo = info
-                                               }
-                                            }
-                                        }
-                                    }
-                                    Rectangle {
-                                        id: bottomRightHandle
-                                        width: 26 / photo.scale; height: 26 / photo.scale
-                                        color: "white"; radius: width/2; border.color: "black"
-                                        x: cropRect.width - width / 2
-                                        y: cropRect.height - height / 2
-                                        z: 10
-                                        MouseArea {
-                                            preventStealing: true
-                                            anchors.fill: parent
-                                            cursorShape: Qt.SizeFDiagCursor
-                                            onReleased: saveState()
-                                            onPositionChanged: (mouse) => {
-                                               if (pressed) {
-                                                    let pos = mapToItem(imagePixels, mouse.x, mouse.y)
-                                                    let newW = Math.max(10, Math.min(pos.x - workingInfo.crop.x, imagePixels.width - workingInfo.crop.x))
-                                                    let newH = Math.max(10, Math.min(pos.y - workingInfo.crop.y, imagePixels.height - workingInfo.crop.y))
-                                                    let info = clone(workingInfo)
-                                                   info.crop = {
-                                                       "x": workingInfo.crop.x,
-                                                       "y": workingInfo.crop.y,
-                                                       "w": newW,
-                                                       "h": newH
-                                                   }
-                                                   workingInfo = info
-                                                }
-                                            }
-                                        }
-                                    }
+                                    id: topLeftHandle
+                                    width: 26 / photo.scale; height: 26 / photo.scale
+                                    color: "white"; radius: width/2; border.color: "black"
+                                    x: -width/2; y: -height/2
+                                    z: 10
                                     MouseArea {
+                                        preventStealing: true
                                         anchors.fill: parent
-                                        anchors.margins: 15 / photo.scale
-                                        cursorShape: Qt.SizeAllCursor
-                                        property real startXInImage: 0
-                                        property real startYInImage: 0
-                                        property real startCropX: 0
-                                        property real startCropY: 0
+                                        cursorShape: Qt.SizeFDiagCursor
                                         onReleased: saveState()
-                                        onPressed: (mouse) => {
-                                           let pos = mapToItem(imagePixels, mouse.x, mouse.y)
-                                           startXInImage = pos.x
-                                           startYInImage = pos.y
-                                           startCropX = workingInfo.crop.x
-                                           startCropY = workingInfo.crop.y
-                                        }
                                         onPositionChanged: (mouse) => {
                                            if (pressed) {
-                                                let currentPosInImage = mapToItem(imagePixels, mouse.x, mouse.y)
-                                                let diffX = currentPosInImage.x - startXInImage
-                                                let diffY = currentPosInImage.y - startYInImage
+                                               let pos = mapToItem(imagePixels, mouse.x, mouse.y)
+                                               let anchorX = workingInfo.crop.x + workingInfo.crop.w
+                                               let anchorY = workingInfo.crop.y + workingInfo.crop.h
+                                               let newX = Math.max(0, Math.min(pos.x, anchorX - 10))
+                                               let newY = Math.max(0, Math.min(pos.y, anchorY - 10))
                                                let info = clone(workingInfo)
                                                info.crop = {
-                                                   "x": Math.max(0, Math.min(startCropX + diffX, imagePixels.width - workingInfo.crop.w)),
-                                                   "y": Math.max(0, Math.min(startCropY + diffY, imagePixels.height - workingInfo.crop.h)),
-                                                   "w": workingInfo.crop.w,
-                                                   "h": workingInfo.crop.h
+                                                   "x": newX,
+                                                   "y": newY,
+                                                   "w": anchorX - newX,
+                                                   "h": anchorY - newY
                                                }
                                                workingInfo = info
                                            }
                                         }
+                                    }
+                                }
+                                Rectangle {
+                                    id: bottomRightHandle
+                                    width: 26 / photo.scale; height: 26 / photo.scale
+                                    color: "white"; radius: width/2; border.color: "black"
+                                    x: cropRect.width - width / 2
+                                    y: cropRect.height - height / 2
+                                    z: 10
+                                    MouseArea {
+                                        preventStealing: true
+                                        anchors.fill: parent
+                                        cursorShape: Qt.SizeFDiagCursor
+                                        onReleased: saveState()
+                                        onPositionChanged: (mouse) => {
+                                           if (pressed) {
+                                                let pos = mapToItem(imagePixels, mouse.x, mouse.y)
+                                                let newW = Math.max(10, Math.min(pos.x - workingInfo.crop.x, imagePixels.width - workingInfo.crop.x))
+                                                let newH = Math.max(10, Math.min(pos.y - workingInfo.crop.y, imagePixels.height - workingInfo.crop.y))
+                                                let info = clone(workingInfo)
+                                               info.crop = {
+                                                   "x": workingInfo.crop.x,
+                                                   "y": workingInfo.crop.y,
+                                                   "w": newW,
+                                                   "h": newH
+                                               }
+                                               workingInfo = info
+                                            }
+                                        }
+                                    }
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: 15 / photo.scale
+                                    cursorShape: Qt.SizeAllCursor
+                                    property real startXInImage: 0
+                                    property real startYInImage: 0
+                                    property real startCropX: 0
+                                    property real startCropY: 0
+                                    onReleased: saveState()
+                                    onPressed: (mouse) => {
+                                       let pos = mapToItem(imagePixels, mouse.x, mouse.y)
+                                       startXInImage = pos.x
+                                       startYInImage = pos.y
+                                       startCropX = workingInfo.crop.x
+                                       startCropY = workingInfo.crop.y
+                                    }
+                                    onPositionChanged: (mouse) => {
+                                       if (pressed) {
+                                            let currentPosInImage = mapToItem(imagePixels, mouse.x, mouse.y)
+                                            let diffX = currentPosInImage.x - startXInImage
+                                            let diffY = currentPosInImage.y - startYInImage
+                                           let info = clone(workingInfo)
+                                           info.crop = {
+                                               "x": Math.max(0, Math.min(startCropX + diffX, imagePixels.width - workingInfo.crop.w)),
+                                               "y": Math.max(0, Math.min(startCropY + diffY, imagePixels.height - workingInfo.crop.h)),
+                                               "w": workingInfo.crop.w,
+                                               "h": workingInfo.crop.h
+                                           }
+                                           workingInfo = info
+                                       }
                                     }
                                 }
                             }

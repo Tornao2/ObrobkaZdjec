@@ -4,6 +4,7 @@ import QtQuick.Controls
 import "../Kontrolki"
 import QtQuick.Dialogs
 import QtCore
+import QtQuick.Effects
 
 Rectangle {
     id: editorScreen
@@ -349,6 +350,17 @@ Rectangle {
                                 updated.h = sourceSize.height
                                 currentMetadata = updated
                             }
+                        }
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            visible: true
+                            contrast: isShowingOriginal ? (originalMetadata.contrast/100) : (currentMetadata.contrast / 100)
+                            saturation: isShowingOriginal ? (originalMetadata.saturation / 100) : (currentMetadata.saturation / 100)
+                            brightness: isShowingOriginal ? (originalMetadata.exposition / 100) : (currentMetadata.exposition / 100)
+                            blurEnabled: isShowingOriginal ? (originalMetadata.blur > 0) : (currentMetadata.blur > 0)
+                            blur: isShowingOriginal ? (originalMetadata.blur / 100) : (currentMetadata.blur / 100)
+                            colorization: isShowingOriginal ? (originalMetadata.temperature / 100) : Math.abs(currentMetadata.temperature / 100)
+                            colorizationColor: isShowingOriginal ? (originalMetadata.temperature > 0) : (currentMetadata.temperature > 0) ? "#FFCC00" : "#00CCFF"
                         }
                     }
 

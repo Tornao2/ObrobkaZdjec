@@ -8,8 +8,16 @@ Rectangle {
     id: correctionScreen
     color: "#8E9191"
     property var imageInfo: ({})
-    property var currentMetadata: ({})
-    property var originalMetadata: ({})
+    property var currentMetadata: ({
+        "contrast": 0,
+        "saturation": 0,
+        "exposition": 0,
+        "temperature": 0,
+        "blur": 0,
+        "flipH": 1,
+        "flipV": 1
+    })
+    property var originalMetadata: currentMetadata
     property bool panMode: false
     property var history: []
     property int historyIndex: -1
@@ -159,41 +167,57 @@ Rectangle {
                     }
                     CorrectionSlider {
                         title: "Kontrast"
-                        from: -50
-                        to: 50
-                        value: value
+                        from: -100
+                        to: 100
+                        value: isShowingOriginal ? originalMetadata.contrast : currentMetadata.contrast
                         Layout.fillWidth: true
-                        onValueChanged: {
+                        onMoved: {
+                                let data = clone(currentMetadata)
+                                data.contrast = value
+                                currentMetadata = data
+                                saveState();
 
                         }
                     }
                     CorrectionSlider {
                         title: "Nasycenie"
-                        from: -50
-                        to: 50
-                        value: value
+                        from: -100
+                        to: 100
+                        value: isShowingOriginal ? originalMetadata.saturation : currentMetadata.saturation
                         Layout.fillWidth: true
-                        onValueChanged: {
+                        onMoved: {
+                                let data = clone(currentMetadata)
+                                data.saturation = value
+                                currentMetadata = data
+                                saveState();
 
                         }
                     }
                     CorrectionSlider {
                         title: "Ekspozycja"
-                        from: -50
-                        to: 50
-                        value: value
+                        from: -100
+                        to: 100
+                        value: isShowingOriginal ? originalMetadata.exposition : currentMetadata.exposition
                         Layout.fillWidth: true
-                        onValueChanged: {
+                        onMoved: {
+                                let data = clone(currentMetadata)
+                                data.exposition = value
+                                currentMetadata = data
+                                saveState();
 
                         }
                     }
                     CorrectionSlider {
                         title: "Temperatura"
-                        from: -50
-                        to: 50
-                        value: value
+                        from: -100
+                        to: 100
+                        value: isShowingOriginal ? originalMetadata.temperature : currentMetadata.temperature
                         Layout.fillWidth: true
-                        onValueChanged: {
+                        onMoved: {
+                                let data = clone(currentMetadata)
+                                data.temperature = value
+                                currentMetadata = data
+                                saveState();
 
                         }
                     }
@@ -201,9 +225,13 @@ Rectangle {
                         title: "Rozmycie"
                         from: 0
                         to: 100
-                        value: value
+                        value: isShowingOriginal ? originalMetadata.blur : currentMetadata.blur
                         Layout.fillWidth: true
-                        onValueChanged: {
+                        onMoved: {
+                                let data = clone(currentMetadata)
+                                data.blur = value
+                                currentMetadata = data
+                                saveState();
 
                         }
                     }
@@ -250,6 +278,7 @@ Rectangle {
                         transformOrigin: Item.Center
                         width: Math.min(implicitWidth, imageContainer.width)
                         height: Math.min(implicitHeight, imageContainer.height)
+                        rotation: isShowingOriginal ? originalMetadata.angle : currentMetadata.angle
                         fillMode: Image.PreserveAspectFit
                         transform: Scale {
                             origin.x: photo.width / 2

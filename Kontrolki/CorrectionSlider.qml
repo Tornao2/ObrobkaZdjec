@@ -4,18 +4,19 @@ import QtQuick.Layouts
 
 Item {
     id: root
-    implicitHeight: 100
+    implicitHeight: 105
     property alias from: slider.from
     property alias to: slider.to
     property alias value: slider.value
     property alias stepSize: slider.stepSize
+    property alias pressed: slider.pressed
     property string title: "Tytuł"
+    signal moved()
     ColumnLayout {
         anchors.fill: parent
-        spacing: 1
         Text {
             text: root.title
-            font.pixelSize: 20
+            font.pixelSize: 18
             font.weight: Font.Medium
             color: "black"
             Layout.alignment: Qt.AlignCenter
@@ -23,7 +24,8 @@ Item {
         Slider {
             id: slider
             Layout.preferredWidth: 130
-            Layout.preferredHeight: 40
+            onMoved: root.moved()
+            Layout.preferredHeight: 30
             background: Rectangle {
                 x: slider.leftPadding
                 y: slider.topPadding + slider.availableHeight / 2 - height / 2
@@ -50,9 +52,34 @@ Item {
                 }
             }
         }
+        Button {
+            text: "↺"
+            Layout.alignment: Qt.AlignCenter
+            flat: true
+            Layout.preferredWidth: 115
+            Layout.preferredHeight: 16
+            contentItem: Text {
+                text: parent.text
+                font.pixelSize: 10
+                font.bold: true
+                verticalAlignment: Text.AlignVCenter
+                color: "black"
+                horizontalAlignment: Text.AlignHCenter
+            }
+            background: Rectangle {
+                implicitHeight: 3
+                color: "#D65151"
+                radius: 5
+            }
+            onClicked: {
+                slider.value = 0
+                root.moved()
+                if (typeof root.parent.saveState === "function") root.parent.saveState()
+            }
+        }
         Text {
             text: slider.value.toFixed(0)
-            font.pixelSize: 22
+            font.pixelSize: 20
             font.weight: Font.Medium
             color: "#333"
             Layout.alignment: Qt.AlignCenter
