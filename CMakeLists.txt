@@ -4,12 +4,18 @@ project(KomunikacjaKomputerowa VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Gui Qml Quick QuickControls2 QuickEffects)
+find_package(Qt6 REQUIRED COMPONENTS Gui Qml Quick QuickControls2 QuickEffects ShaderTools)
 
 qt_standard_project_setup(REQUIRES 6.10)
 
 qt_add_executable(appKomunikacjaKomputerowa
     main.cpp
+)
+
+qt6_add_shaders(appKomunikacjaKomputerowa "my_shaders"
+    PBR
+    PREFIX "/shaders"
+    FILES "filters.frag"
 )
 
 set(RES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources")
@@ -25,18 +31,21 @@ qt_add_qml_module(appKomunikacjaKomputerowa
     QML_FILES
         Main.qml
         SOURCES
-        QML_FILES Kontrolki/CustomButton.qml
         QML_FILES Ekrany/StartScreen.qml
         QML_FILES Ekrany/EditorScreen.qml
         QML_FILES Ekrany/MetadataScreen.qml
         QML_FILES Ekrany/ManipulationScreen.qml
         QML_FILES Ekrany/CorrectionScreen.qml
+        QML_FILES Ekrany/FilterScreen.qml
     RESOURCES
         ${IMAGE_FILES}
         QML_FILES Kontrolki/CornerButton.qml
         QML_FILES Kontrolki/MetadataEditRow.qml
         QML_FILES Kontrolki/ConfirmDialog.qml
         QML_FILES Kontrolki/CorrectionSlider.qml
+        QML_FILES Kontrolki/FilterButton.qml
+        QML_FILES Kontrolki/CustomButton.qml
+        RESOURCES filters.frag
 )
 
 target_precompile_headers(appKomunikacjaKomputerowa
@@ -58,7 +67,7 @@ set_target_properties(appKomunikacjaKomputerowa PROPERTIES
 )
 
 target_link_libraries(appKomunikacjaKomputerowa
-    PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::QuickEffects
+    PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::QuickEffects Qt6::ShaderTools
 )
 
 install(TARGETS appKomunikacjaKomputerowa

@@ -5,25 +5,20 @@ import QtQuick.Effects
 import "../Kontrolki"
 
 Rectangle {
-    id: correctionScreen
+    id: filterScreen
     color: "#8E9191"
     property var imageInfo: ({})
-    property var currentMetadata: ({
-        "contrast": 0,
-        "saturation": 0,
-        "exposition": 0,
-        "temperature": 0,
-        "blur": 0,
-        "flipH": 1,
-        "flipV": 1
-    })
+    property var currentMetadata: ({})
     property var originalMetadata: currentMetadata
     property bool panMode: false
     property var history: []
     property int historyIndex: -1
     property bool isShowingOriginal: false
     property bool blockHistory: false
-    signal correctionFinished(var finalInfo)
+    property string selectedFilterName: ""
+    property real filterStrength: 30.0
+    property string activeProperty: ""
+    signal filteringFinished(var finalInfo)
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function saveState() {
         if (blockHistory) return;
@@ -171,74 +166,102 @@ Rectangle {
                             }
                         }
                     }
-                    CorrectionSlider {
-                        title: "Kontrast"
-                        from: -100
-                        to: 100
-                        value: isShowingOriginal ? originalMetadata.contrast : currentMetadata.contrast
-                        Layout.fillWidth: true
-                        onMoved: {
-                                let data = clone(currentMetadata)
-                                data.contrast = value
-                                currentMetadata = data
-                                saveState();
-
+                    ColumnLayout {
+                        width: parent.width
+                        spacing: 0
+                        Repeater {
+                            model: ["Filtry \nWyostrzania", "Filtry \nRozmycia", "Filtry \nKreatywne", "Filtry \nKorekcyjne", "Filtry \nKoloru"]
+                            FilterButton {
+                                categoryTitle: modelData
+                                onFilterActivated: (filter) => {
+                                   selectedFilterName = filter;
+                                   let mapping = {
+                                       "Krawędzie": "f_krawedzie", "Szum": "f_szum",
+                                       "Rozmycie kół": "f_rozmycie_kol", "Pixel Art": "f_pixel_art",
+                                       "Stary Film": "f_stary_film", "Negatyw": "f_negatyw",
+                                       "Progowanie": "f_progowanie", "Sepia Retro": "f_sepia_retro",
+                                       "Zimna Noc": "f_zimna_noc", "Ciepłe Lato": "f_cieple_lato"
+                                   };
+                                   activeProperty = mapping[filter];
+                                }
+                            }
                         }
                     }
-                    CorrectionSlider {
-                        title: "Nasycenie"
-                        from: -100
-                        to: 100
-                        value: isShowingOriginal ? originalMetadata.saturation : currentMetadata.saturation
+                    ColumnLayout {
+                        spacing: 20
                         Layout.fillWidth: true
-                        onMoved: {
-                                let data = clone(currentMetadata)
-                                data.saturation = value
-                                currentMetadata = data
-                                saveState();
-
+                        Layout.preferredWidth: 130
+                        visible: filterScreen.selectedFilterName !== ""
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            color: "black"
+                            opacity: 0.2
                         }
-                    }
-                    CorrectionSlider {
-                        title: "Ekspozycja"
-                        from: -100
-                        to: 100
-                        value: isShowingOriginal ? originalMetadata.exposition : currentMetadata.exposition
-                        Layout.fillWidth: true
-                        onMoved: {
-                                let data = clone(currentMetadata)
-                                data.exposition = value
-                                currentMetadata = data
-                                saveState();
-
+                        Text {
+                            text: filterScreen.selectedFilterName
+                            font.pixelSize: 18
+                            font.weight: Font.Medium
+                            color: "black"
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            Layout.preferredHeight: 45
                         }
-                    }
-                    CorrectionSlider {
-                        title: "Temperatura"
-                        from: -100
-                        to: 100
-                        value: isShowingOriginal ? originalMetadata.temperature : currentMetadata.temperature
-                        Layout.fillWidth: true
-                        onMoved: {
-                                let data = clone(currentMetadata)
-                                data.temperature = value
-                                currentMetadata = data
-                                saveState();
-
+                        Slider {
+                            id: filterStrengthSlider
+                            from: 0
+                            to: 100
+                            value: (activeProperty !== "" && currentMetadata[activeProperty] !== undefined)
+                                       ? currentMetadata[activeProperty] : 0
+                            stepSize: 1
+                            Layout.preferredWidth: 130
+                            Layout.preferredHeight: 30
+                            Layout.alignment: Qt.AlignCenter
+                            background: Rectangle {
+                                x: filterStrengthSlider.leftPadding
+                                y: filterStrengthSlider.topPadding + filterStrengthSlider.availableHeight / 2 - height / 2
+                                implicitWidth: 130
+                                implicitHeight: 8
+                                width: filterStrengthSlider.availableWidth
+                                height: implicitHeight
+                                radius: 3
+                                color: "#555555"
+                            }
+                            handle: Rectangle {
+                                x: filterStrengthSlider.leftPadding + filterStrengthSlider.visualPosition * (filterStrengthSlider.availableWidth - width)
+                                y: filterStrengthSlider.topPadding + filterStrengthSlider.availableHeight / 2 - height / 2
+                                implicitWidth: 22
+                                implicitHeight: 22
+                                radius: 9
+                                color: "white"
+                                border.color: "#333"
+                                border.width: 1
+                            }
+                            onMoved: {
+                                if (activeProperty !== "") {
+                                    currentMetadata[activeProperty] = value
+                                    let data = JSON.parse(JSON.stringify(currentMetadata));
+                                    data.activeProperty = value;
+                                    currentMetadata = data;
+                                }
+                            }
+                            onPressedChanged: {
+                                if (!pressed) {
+                                    let data = JSON.parse(JSON.stringify(currentMetadata));
+                                    data.activeProperty = value;
+                                    currentMetadata = data;
+                                    saveState()
+                                }
+                            }
                         }
-                    }
-                    CorrectionSlider {
-                        title: "Rozmycie"
-                        from: 0
-                        to: 100
-                        value: isShowingOriginal ? originalMetadata.blur : currentMetadata.blur
-                        Layout.fillWidth: true
-                        onMoved: {
-                                let data = clone(currentMetadata)
-                                data.blur = value
-                                currentMetadata = data
-                                saveState();
-
+                        Text {
+                            text: filterStrengthSlider.value.toFixed(0)
+                            font.pixelSize: 20
+                            font.weight: Font.Medium
+                            color: "#333"
+                            Layout.alignment: Qt.AlignCenter
                         }
                     }
                     Item { Layout.fillHeight: true }
@@ -260,7 +283,7 @@ Rectangle {
                         }
                         onClicked: {
                             saveState();
-                            correctionFinished(currentMetadata);
+                            filteringFinished(currentMetadata);
                             mainStack.pop();
                         }
                     }

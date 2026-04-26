@@ -482,7 +482,17 @@ Rectangle {
                                                 "y": workingInfo.crop.y || 0,
                                                 "w": workingInfo.crop.w || originalInfo.crop.w,
                                                 "h": workingInfo.crop.h || originalInfo.crop.h
-                                            }
+                                            },
+                                            "f_krawedzie": workingInfo.f_krawedzie,
+                                            "f_szum": workingInfo.f_szum,
+                                            "f_rozmycie_kol": workingInfo.f_rozmycie_kol,
+                                            "f_pixel_art": workingInfo.f_pixel_art,
+                                            "f_stary_film": workingInfo.f_stary_film,
+                                            "f_negatyw": workingInfo.f_negatyw,
+                                            "f_progowanie": workingInfo.f_progowanie,
+                                            "f_sepia_retro": workingInfo.f_sepia_retro,
+                                            "f_zimna_noc": workingInfo.f_zimna_noc,
+                                            "f_cieple_lato": workingInfo.f_cieple_lato
                                         };
                                         metadataScreen.metadataUpdated(finalState);
                                         mainStack.pop();

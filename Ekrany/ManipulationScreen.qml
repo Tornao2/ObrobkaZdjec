@@ -273,9 +273,6 @@
                                 onClicked: {
                                     rotationSlider.value = (rotationSlider.value - 90)
                                     workingInfo.angle = rotationSlider.value
-                                    let temp = workingInfo.w
-                                    workingInfo.w = workingInfo.h
-                                    workingInfo.h = temp
                                     saveState()
                                 }
                             }
@@ -287,9 +284,6 @@
                                 onClicked: {
                                     rotationSlider.value = (rotationSlider.value + 90)
                                     workingInfo.angle = rotationSlider.value
-                                    let temp = workingInfo.w
-                                    workingInfo.w = workingInfo.h
-                                    workingInfo.h = temp
                                     saveState()
                                 }
                             }
@@ -312,15 +306,6 @@
                                 radius: 4
                             }
                             onClicked: {
-                                const angleRad = (rotationSlider.value * Math.PI) / 180;
-                                const w = workingInfo.crop.w;
-                                const h = workingInfo.crop.h;
-                                const newWidth = Math.abs(w * Math.cos(angleRad)) + Math.abs(h * Math.sin(angleRad));
-                                const newHeight = Math.abs(w * Math.sin(angleRad)) + Math.abs(h * Math.cos(angleRad));
-                                const finalW = Math.round(newWidth);
-                                const finalH = Math.round(newHeight);
-                                workingInfo.w = finalW;
-                                workingInfo.h = finalH;
                                 saveState();
                                 manipulationFinished(workingInfo);
                                 mainStack.pop();
@@ -392,14 +377,34 @@
                             }
                             layer.enabled: true
                             layer.effect: MultiEffect {
-                                visible: true
+                                id: multiEffectItem
                                 contrast: isShowingOriginal ? (originalInfo.contrast/100) : (workingInfo.contrast / 100)
                                 saturation: isShowingOriginal ? (originalInfo.saturation / 100) : (workingInfo.saturation / 100)
                                 brightness: isShowingOriginal ? (originalInfo.exposition / 100) : (workingInfo.exposition / 100)
                                 blurEnabled: isShowingOriginal ? (originalInfo.blur > 0) : (workingInfo.blur > 0)
                                 blur: isShowingOriginal ? (originalInfo.blur / 100) : (workingInfo.blur / 100)
-                                colorization: isShowingOriginal ? (originalInfo.temperature / 100) : Math.abs(workingInfo.temperature / 100)
-                                colorizationColor: isShowingOriginal ? (originalInfo.temperature > 0) : (workingInfo.temperature > 0) ? "#FFCC00" : "#00CCFF"
+                                colorization: isShowingOriginal ? Math.abs(originalInfo.temperature / 100) : Math.abs(workingInfo.temperature / 100)
+                                colorizationColor: {
+                                    let temp = isShowingOriginal ? originalInfo.temperature : workingInfo.temperature;
+                                    return temp > 0 ? "#FFCC00" : "#00CCFF";
+                                }
+                                layer.enabled: true
+                                layer.effect: ShaderEffect {
+                                    property var source: multiEffectItem
+                                    property real f_negatyw: (isShowingOriginal ? originalInfo.f_negatyw : workingInfo.f_negatyw) / 100.0
+                                    property real f_krawedzie: (isShowingOriginal ? originalInfo.f_krawedzie : workingInfo.f_krawedzie) / 100.0
+                                    property real f_szum: (isShowingOriginal ? originalInfo.f_szum : workingInfo.f_szum) / 100.0
+                                    property real f_rozmycie_kol: (isShowingOriginal ? originalInfo.f_rozmycie_kol : workingInfo.f_rozmycie_kol) / 100.0
+                                    property real f_pixel_art: (isShowingOriginal ? originalInfo.f_pixel_art : workingInfo.f_pixel_art) / 100.0
+                                    property real f_stary_film: (isShowingOriginal ? originalInfo.f_stary_film : workingInfo.f_stary_film) / 100.0
+                                    property real f_cieple_lato: (isShowingOriginal ? originalInfo.f_cieple_lato : workingInfo.f_cieple_lato) / 100.0
+                                    property real f_progowanie: (isShowingOriginal ? originalInfo.f_progowanie : workingInfo.f_progowanie) / 100.0
+                                    property real f_sepia_retro: (isShowingOriginal ? originalInfo.f_sepia_retro : workingInfo.f_sepia_retro) / 100.0
+                                    property real f_zimna_noc: (isShowingOriginal ? originalInfo.f_zimna_noc : workingInfo.f_zimna_noc) / 100.0
+                                    property real srcWidth: photo.sourceSize.width
+                                    property real srcHeight: photo.sourceSize.height
+                                    fragmentShader: "qrc:/shaders/filters.frag.qsb"
+                                }
                             }
                         }
                         Item {

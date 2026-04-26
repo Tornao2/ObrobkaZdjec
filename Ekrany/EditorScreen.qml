@@ -70,7 +70,17 @@ Rectangle {
                 "y": 0,
                 "w": photo.implicitWidth,
                 "h": photo.implicitHeight
-            }
+            },
+            "f_krawedzie": 0,
+            "f_szum": 0,
+            "f_rozmycie_kol": 0,
+            "f_pixel_art": 0,
+            "f_stary_film": 0,
+            "f_negatyw": 0,
+            "f_progowanie": 0,
+            "f_sepia_retro": 0,
+            "f_zimna_noc": 0,
+            "f_cieple_lato": 0
         }
         currentMetadata = initialData
         originalMetadata = Object.assign({}, initialData)
@@ -332,9 +342,12 @@ Rectangle {
                         y: (parent.height - height) / 2
                         scale: zoomSlider.value
                         transformOrigin: Item.Center
-                        width: Math.min(implicitWidth, imageContainer.width)
-                        height: Math.min(implicitHeight, imageContainer.height)
-                        fillMode: Image.PreserveAspectFit
+                        width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
+                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
+                        anchors.centerIn: parent
+                        fillMode: Image.Stretch
+                        asynchronous: false
+                        cache: false
                         transform: Scale {
                             origin.x: photo.width / 2
                             origin.y: photo.height / 2
@@ -344,26 +357,66 @@ Rectangle {
                         onStatusChanged: {
                             if (status === Image.Ready) {
                                 let updated = Object.assign({}, currentMetadata)
-                                updated.name = source.toString().split("/").pop()
-                                updated.path = source.toString()
-                                updated.w = sourceSize.width
-                                updated.h = sourceSize.height
-                                currentMetadata = updated
+                                updated.w = sourceSize.width;
+                                updated.h = sourceSize.height;
+                                if (!updated.crop) {
+                                    updated.crop = { "x": 0, "y": 0, "w": 0, "h": 0 };
+                                }
+                                if (updated.crop.w <= 0) {
+                                    updated.crop.x = 0;
+                                    updated.crop.y = 0;
+                                    updated.crop.w = sourceSize.width;
+                                    updated.crop.h = sourceSize.height;
+                                }
+                                currentMetadata = updated;
+                                if (originalMetadata.w <= 0 || !originalMetadata.w){
+                                    originalMetadata.w = sourceSize.width;
+                                    originalMetadata.h = sourceSize.height;
+                                }
+                                if (!originalMetadata.crop || originalMetadata.crop.w <= 0) {
+                                    originalMetadata.crop = { "x": 0, "y": 0, "w": 0, "h": 0 };
+                                    originalMetadata.crop.w = sourceSize.width;
+                                    originalMetadata.crop.h = sourceSize.height;
+                                }
+                                photo.sourceClipRect = Qt.rect(
+                                    updated.crop.x, updated.crop.y,
+                                    updated.crop.w, updated.crop.h
+                                );
+                                zoomToFit();
                             }
                         }
                         layer.enabled: true
                         layer.effect: MultiEffect {
-                            visible: true
+                            id: multiEffectItem
                             contrast: isShowingOriginal ? (originalMetadata.contrast/100) : (currentMetadata.contrast / 100)
                             saturation: isShowingOriginal ? (originalMetadata.saturation / 100) : (currentMetadata.saturation / 100)
                             brightness: isShowingOriginal ? (originalMetadata.exposition / 100) : (currentMetadata.exposition / 100)
                             blurEnabled: isShowingOriginal ? (originalMetadata.blur > 0) : (currentMetadata.blur > 0)
                             blur: isShowingOriginal ? (originalMetadata.blur / 100) : (currentMetadata.blur / 100)
-                            colorization: isShowingOriginal ? (originalMetadata.temperature / 100) : Math.abs(currentMetadata.temperature / 100)
-                            colorizationColor: isShowingOriginal ? (originalMetadata.temperature > 0) : (currentMetadata.temperature > 0) ? "#FFCC00" : "#00CCFF"
+                            colorization: isShowingOriginal ? Math.abs(originalMetadata.temperature / 100) : Math.abs(currentMetadata.temperature / 100)
+                            colorizationColor: {
+                                let temp = isShowingOriginal ? originalMetadata.temperature : currentMetadata.temperature;
+                                return temp > 0 ? "#FFCC00" : "#00CCFF";
+                            }
+                            layer.enabled: true
+                            layer.effect: ShaderEffect {
+                                property var source: multiEffectItem
+                                property real f_negatyw: (isShowingOriginal ? originalMetadata.f_negatyw : currentMetadata.f_negatyw) / 100.0
+                                property real f_krawedzie: (isShowingOriginal ? originalMetadata.f_krawedzie : currentMetadata.f_krawedzie) / 100.0
+                                property real f_szum: (isShowingOriginal ? originalMetadata.f_szum : currentMetadata.f_szum) / 100.0
+                                property real f_rozmycie_kol: (isShowingOriginal ? originalMetadata.f_rozmycie_kol : currentMetadata.f_rozmycie_kol) / 100.0
+                                property real f_pixel_art: (isShowingOriginal ? originalMetadata.f_pixel_art : currentMetadata.f_pixel_art) / 100.0
+                                property real f_stary_film: (isShowingOriginal ? originalMetadata.f_stary_film : currentMetadata.f_stary_film) / 100.0
+                                property real f_cieple_lato: (isShowingOriginal ? originalMetadata.f_cieple_lato : currentMetadata.f_cieple_lato) / 100.0
+                                property real f_progowanie: (isShowingOriginal ? originalMetadata.f_progowanie : currentMetadata.f_progowanie) / 100.0
+                                property real f_sepia_retro: (isShowingOriginal ? originalMetadata.f_sepia_retro : currentMetadata.f_sepia_retro) / 100.0
+                                property real f_zimna_noc: (isShowingOriginal ? originalMetadata.f_zimna_noc : currentMetadata.f_zimna_noc) / 100.0
+                                property real srcWidth: photo.sourceSize.width
+                                property real srcHeight: photo.sourceSize.height
+                                fragmentShader: "qrc:/shaders/filters.frag.qsb"
+                            }
                         }
                     }
-
                     MouseArea {
                         id: dragArea
                         anchors.fill: parent
@@ -494,6 +547,13 @@ Rectangle {
                             color: "black"
                             anchors.verticalCenter: parent.verticalCenter
                         }
+                    }
+                    onClicked: {
+                        let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+                        filterPage.filteringFinished.connect(function(info) {
+                            currentMetadata = info
+                            commitState()
+                        })
                     }
                 }
                 CustomButton {
@@ -758,14 +818,14 @@ Rectangle {
             originalImagePath = newPath
             history = []
             historyIndex = -1
-            photo.source = ""
-            photo.source = imagePath
+            panMode = false
+            zoomSlider.value = 1.0
             let initialData = {
                 "path": imagePath,
                 "name": imagePath.split("/").pop(),
                 "format": imagePath.split(".").pop(),
-                "w": photo.implicitWidth,
-                "h": photo.implicitHeight,
+                "w": 0,
+                "h": 0,
                 "dpi": "300 dpi",
                 "depth": "24-bit",
                 "fileSize": "3.2 MB",
@@ -788,15 +848,33 @@ Rectangle {
                 "crop": {
                     "x": 0,
                     "y": 0,
-                    "w": photo.implicitWidth,
-                    "h": photo.implicitHeight
-                }
+                    "w": 0,
+                    "h": 0
+                },
+                "f_krawedzie": 0,
+                "f_szum": 0,
+                "f_rozmycie_kol": 0,
+                "f_pixel_art": 0,
+                "f_stary_film": 0,
+                "f_negatyw": 0,
+                "f_progowanie": 0,
+                "f_sepia_retro": 0,
+                "f_zimna_noc": 0,
+                "f_cieple_lato": 0
             }
+            photo.source = ""
+            photo.source = imagePath
             currentMetadata = initialData
             panMode = false
             originalMetadata = initialData
             commitState()
             zoomSlider.value = 1.0
+            photo.sourceClipRect = Qt.rect(
+                currentMetadata.crop.x,
+                currentMetadata.crop.y,
+                currentMetadata.crop.w,
+                currentMetadata.crop.h
+            )
             zoomToFit()
             let startPage = mainStack.get(0)
             if (startPage && typeof startPage.dodajDoHistorii === "function") {
@@ -815,22 +893,60 @@ Rectangle {
         title: "Potwierdź reset"
         message: "Czy na pewno chcesz cofnąć wszystkie zmiany i powrócić do oryginalnego zdjęcia?"
         onConfirmed: {
-            imagePath = originalImagePath
-            currentMetadata = originalMetadata
             history = []
             historyIndex = -1
+            panMode = false
+            zoomSlider.value = 1.0
+            photo.rotation = 0
+            let initialData = {
+                "path": imagePath,
+                "name": imagePath.split("/").pop(),
+                "format": imagePath.split(".").pop(),
+                "w": 0,
+                "h": 0,
+                "dpi": "300 dpi",
+                "depth": "24-bit",
+                "fileSize": "3.2 MB",
+                "date": "2024-05-12 14:30",
+                "cameraModel": "Sony Alpha a7 IV",
+                "iso": "400",
+                "fStop": "f/2.8",
+                "shutterSpeed": "1/200s",
+                "artist": "Jan Kowalski",
+                "copyright": "© 2024 Kowalski Studio. All rights reserved.",
+                "description": "Sesja plenerowa - Park Narodowy, zachód słońca.",
+                "contrast": 0,
+                "saturation": 0,
+                "exposition": 0,
+                "temperature": 0,
+                "blur": 0,
+                "flipH" : 1,
+                "flipV" : 1,
+                "angle" : 0,
+                "crop": {
+                    "x": 0,
+                    "y": 0,
+                    "w": 0,
+                    "h": 0
+                },
+                "f_krawedzie": 0,
+                "f_szum": 0,
+                "f_rozmycie_kol": 0,
+                "f_pixel_art": 0,
+                "f_stary_film": 0,
+                "f_negatyw": 0,
+                "f_progowanie": 0,
+                "f_sepia_retro": 0,
+                "f_zimna_noc": 0,
+                "f_cieple_lato": 0
+            }
+            photo.source = ""
+            photo.source = imagePath
+            currentMetadata = initialData
+            panMode = false
+            originalMetadata = initialData
             commitState()
             zoomSlider.value = 1.0
-            panMode = false
-            photo.rotation = 0
-            let info = clone(currentMetadata)
-            info.crop = {
-                "x": 0,
-                "y": 0,
-                "w": currentMetadata.w,
-                "h": currentMetadata.h
-            }
-            currentMetadata = info
             photo.sourceClipRect = Qt.rect(
                 currentMetadata.crop.x,
                 currentMetadata.crop.y,
