@@ -37,6 +37,7 @@ qt_add_qml_module(appKomunikacjaKomputerowa
         QML_FILES Ekrany/ManipulationScreen.qml
         QML_FILES Ekrany/CorrectionScreen.qml
         QML_FILES Ekrany/FilterScreen.qml
+        QML_FILES Ekrany/DrawingScreen.qml
     RESOURCES
         ${IMAGE_FILES}
         QML_FILES Kontrolki/CornerButton.qml

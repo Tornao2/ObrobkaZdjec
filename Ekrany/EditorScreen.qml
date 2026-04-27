@@ -343,8 +343,7 @@ Rectangle {
                         scale: zoomSlider.value
                         transformOrigin: Item.Center
                         width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
-                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
-                        anchors.centerIn: parent
+                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))                    
                         fillMode: Image.Stretch
                         asynchronous: false
                         cache: false
@@ -578,6 +577,13 @@ Rectangle {
                             color: "black"
                             anchors.verticalCenter: parent.verticalCenter
                         }
+                    }
+                    onClicked: {
+                        let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+                        drawPage.drawingFinished.connect(function(info) {
+                            currentMetadata = info
+                            commitState()
+                        })
                     }
                 }
             }
@@ -1003,7 +1009,96 @@ Rectangle {
             data.flipV = (currentMetadata.flipV === 1 ? -1 : 1)
             currentMetadata = data;
             commitState()
+        } else if (actionName === "Krawędzie") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Krawędzie"
+            filterPage.filterStrength = currentMetadata["f_krawedzie"]
+            filterPage.activeProperty = "f_krawedzie"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Szum") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Szum"
+            filterPage.filterStrength = currentMetadata["f_szum"]
+            filterPage.activeProperty = "f_szum"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Rozmycie kół") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Rozmycie kół"
+            filterPage.filterStrength = currentMetadata["f_rozmycie_kol"]
+            filterPage.activeProperty = "f_rozmycie_kol"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Pixel Art") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Pixel Art"
+            filterPage.filterStrength = currentMetadata["f_pixel_art"]
+            filterPage.activeProperty = "f_pixel_art"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Stary Film") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Stary Film"
+            filterPage.filterStrength = currentMetadata["f_stary_film"]
+            filterPage.activeProperty = "f_stary_film"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Negatyw") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Negatyw"
+            filterPage.filterStrength = currentMetadata["f_negatyw"]
+            filterPage.activeProperty = "f_negatyw"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Progowanie") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Progowanie"
+            filterPage.filterStrength = currentMetadata["f_progowanie"]
+            filterPage.activeProperty = "f_progowanie"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Sepia Retro") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Sepia Retro"
+            filterPage.filterStrength = currentMetadata["f_sepia_retro"]
+            filterPage.activeProperty = "f_sepia_retro"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Zimna Noc") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Zimna Noc"
+            filterPage.filterStrength = currentMetadata["f_zimna_noc"]
+            filterPage.activeProperty = "f_zimna_noc"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Ciepłe Lato") {
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            filterPage.selectedFilterName = "Ciepłe Lato"
+            filterPage.filterStrength = currentMetadata["f_cieple_lato"]
+            filterPage.activeProperty = "f_cieple_lato"
+            filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
         }
-
     }
 }

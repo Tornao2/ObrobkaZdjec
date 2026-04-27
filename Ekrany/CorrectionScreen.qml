@@ -284,7 +284,6 @@ Rectangle {
                         transformOrigin: Item.Center
                         width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
                         height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
-                        anchors.centerIn: parent
                         fillMode: Image.Stretch
                         rotation: isShowingOriginal ? originalMetadata.angle : currentMetadata.angle
                         transform: Scale {
