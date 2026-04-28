@@ -11,46 +11,44 @@ Rectangle {
     property var currentMetadata: ({})
     property var originalMetadata: currentMetadata
     property bool panMode: false
-    property var history: []
-    property int historyIndex: -1
-    property bool isShowingOriginal: false
-    property bool blockHistory: false
     property string selectedTool: ""
-    property var toolOptions: ({})
+    property var toolOptions: {
+                            "color" : "red",
+                            "pencilSize": 5,
+                            "pencilOpacity": 1,
+                            "penSize": 3,
+                            "penOpacity": 1,
+                            "penSmoothing": 0.3,
+                            "eraserSize": 5,
+                            "textSize": 32,
+                            "textOpacity": 1,
+                            "textSpacing": 0,
+                            "currentText": "Wpisz"
+                               }
     signal drawingFinished(var finalInfo)
+    property string initialCanvasData: ""
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
-    function saveState() {
-        if (blockHistory) return;
-        let stateToSave = clone(currentMetadata)
-        if (historyIndex < history.length - 1) {
-            history = history.slice(0, historyIndex + 1);
-        }
-        history.push(stateToSave);
-        historyIndex = history.length - 1;
-    }
-    function applyState(state) {
-        if (!state) return;
-        blockHistory = true;
-        currentMetadata = clone(state);
-        blockHistory = false;
-    }
     Component.onCompleted: {
-        currentMetadata = JSON.parse(JSON.stringify(imageInfo));
-        originalMetadata = JSON.parse(JSON.stringify(imageInfo));
-        history = [];
-        historyIndex = -1;
+        currentMetadata = clone(imageInfo);
+        originalMetadata = clone(imageInfo);
         photo.sourceClipRect = Qt.rect(
-            currentMetadata.crop.x,
-            currentMetadata.crop.y,
-            currentMetadata.crop.w,
-            currentMetadata.crop.h
-        )
-        saveState()
-        zoomToFit()
+            currentMetadata.crop.x, currentMetadata.crop.y,
+            currentMetadata.crop.w, currentMetadata.crop.h
+        );
+        zoomToFit();
     }
     function stripExtension(fileName) {
         if (!fileName) return "";
         return fileName.indexOf('.') !== -1 ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+    }
+    function finishDrawing() {
+        let finalImage = drawingCanvas.toDataURL("image/png");
+        let finalData = {
+            "image": finalImage,
+            "metadata": clone(currentMetadata)
+        };
+        drawingFinished(finalData);
+        mainStack.pop()
     }
     ColumnLayout {
         anchors.fill: parent
@@ -96,73 +94,8 @@ Rectangle {
                             color: resetBtn.pressed ? "#A34141" : (resetBtn.hovered ? "#C45454" : "#AB4141")
                             radius: 4
                         }
-                        onClicked: mainStack.pop()
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        CustomButton {
-                            id: undoBtn
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/undo.svg"
-                            iconSize: 35
-                            enabled: historyIndex > 0
-                            opacity: enabled ? 1.0 : 0.4
-                            tooltipText: "Cofnij"
-                            onClicked: {
-                                if (historyIndex > 0) {
-                                    historyIndex--
-                                    applyState(history[historyIndex])
-                                }
-                            }
-                        }
-                        CustomButton {
-                            id: redoBtn
-                            Layout.fillWidth: true
-                            enabled: historyIndex < history.length - 1
-                            opacity: enabled ? 1.0 : 0.4
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/undo.svg"
-                            iconSize: 35
-                            contentItem: Item {
-                                Image {
-                                    anchors.centerIn: parent
-                                    width: redoBtn.iconSize
-                                    height: redoBtn.iconSize
-                                    sourceSize.width: redoBtn.iconSize
-                                    sourceSize.height: redoBtn.iconSize
-                                    source: redoBtn.icon.source
-                                    mirror: true
-                                    fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                    opacity: redoBtn.enabled ? 1.0 : 0.25
-                                }
-                            }
-                            tooltipText: "Ponów"
-                            onClicked: {
-                                if (historyIndex < history.length - 1) {
-                                    historyIndex++
-                                    applyState(history[historyIndex])
-                                }
-                            }
-                        }
-                        CustomButton {
-                            id: actionBtn
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/transition-right.svg"
-                            iconSize: 35
-                            tooltipText: "Przytrzymaj żeby pokazać zmiany"
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onEntered: {
-                                    isShowingOriginal = true
-                                }
-                                onExited: {
-                                    isShowingOriginal = false
-                                }
-                            }
+                        onClicked: {
+                            mainStack.pop()
                         }
                     }
                     Grid {
@@ -411,7 +344,7 @@ Rectangle {
                             Slider {
                                 id: penSmoothingSlider
                                 from: 0
-                                to: 1
+                                to: 0.99
                                 value: toolOptions.penSmoothing || 0.5
                                 Layout.preferredWidth: 130
                                 Layout.preferredHeight: 30
@@ -542,6 +475,22 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 130
                             visible: selectedTool == "Color"
+                            property bool _isUpdating: false
+                            Connections {
+                                target: drawingScreen
+                                function onToolOptionsChanged() {
+                                    if (colorSettingsContainer._isUpdating) return;
+                                    let c = Qt.color(toolOptions.color)
+                                    let newR = Math.round(c.r * 255);
+                                    let newG = Math.round(c.g * 255);
+                                    let newB = Math.round(c.b * 255);
+                                    colorSettingsContainer._isUpdating = true;
+                                    rSlider.value = newR;
+                                    gSlider.value = newG;
+                                    bSlider.value = newB;
+                                    colorSettingsContainer._isUpdating = false;
+                                }
+                            }
                             Text {
                                 text: "Kolor RGB"
                                 font.pixelSize: 22
@@ -618,16 +567,17 @@ Rectangle {
                                 font.pixelSize: 16; color: "black"; Layout.alignment: Qt.AlignCenter
                             }
                             function updateColor() {
+                                if (_isUpdating) return;
                                 let r = rSlider.value / 255
                                 let g = gSlider.value / 255
                                 let b = bSlider.value / 255
-                                let newColor = Qt.rgba(r, g, b, 1)
-                                let newOptions = {}
-                                for (let key in toolOptions) {
-                                    newOptions[key] = toolOptions[key]
-                                }
-                                newOptions.color = newColor
-                                toolOptions = newOptions
+                                let colorObj = Qt.rgba(r, g, b, 1)
+                                let newHex = Qt.color(colorObj).toString().substring(0, 7)
+                                _isUpdating = true;
+                                let temp = Object.assign({}, toolOptions);
+                                temp.color = newHex;
+                                toolOptions = temp;
+                                _isUpdating = false;
                             }
                         }
                         ColumnLayout {
@@ -654,7 +604,6 @@ Rectangle {
                                 from: 8; to: 150; stepSize: 1
                                 value: toolOptions.textSize || 32
                                 Layout.preferredWidth: 130; Layout.preferredHeight: 30
-
                                 background: Rectangle {
                                     implicitHeight: 8; radius: 3; color: "#555555"
                                     width: textSizeSlider.availableWidth
@@ -687,7 +636,6 @@ Rectangle {
                                 Layout.preferredWidth: 130
                                 Layout.preferredHeight: 30
                                 Layout.alignment: Qt.AlignCenter
-
                                 background: Rectangle {
                                     x: textSpacingSlider.leftPadding
                                     y: textSpacingSlider.topPadding + textSpacingSlider.availableHeight / 2 - height / 2
@@ -729,7 +677,6 @@ Rectangle {
                                 Layout.preferredWidth: 130
                                 Layout.preferredHeight: 30
                                 Layout.alignment: Qt.AlignCenter
-
                                 background: Rectangle {
                                     x: textOpacitySlider.leftPadding
                                     y: textOpacitySlider.topPadding + textOpacitySlider.availableHeight / 2 - height / 2
@@ -757,6 +704,34 @@ Rectangle {
                                     toolOptions = options
                                 }
                             }
+                            TextField {
+                                id: textInputSource
+                                placeholderText: "Wpisz tekst..."
+                                text: "Mój Tekst"
+                                Layout.preferredWidth: 130
+                                Layout.preferredHeight: 35
+                                Layout.alignment: Qt.AlignCenter
+                                color: "white"
+                                font.pixelSize: 16
+                                selectionColor: "#777777"
+                                selectedTextColor: "white"
+                                verticalAlignment: TextInput.AlignVCenter
+                                leftPadding: 10
+                                rightPadding: 10
+                                background: Rectangle {
+                                    color: "#555555"
+                                    radius: 5
+                                }
+                                placeholderTextColor: "#aaaaaa"
+                                onTextChanged: {
+                                    let options = toolOptions
+                                    options.currentText = text
+                                    toolOptions = options
+                                }
+                                onAccepted: {
+                                    focus = false
+                                }
+                            }
                         }
                     }
                     Item { Layout.fillHeight: true }
@@ -777,9 +752,7 @@ Rectangle {
                             radius: 4
                         }
                         onClicked: {
-                            saveState();
-                            drawingFinished(currentMetadata);
-                            mainStack.pop();
+                            drawingScreen.finishDrawing()
                         }
                     }
                 }
@@ -803,39 +776,143 @@ Rectangle {
                         width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
                         height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
                         fillMode: Image.Stretch
-                        rotation: isShowingOriginal ? originalMetadata.angle : currentMetadata.angle
+                        rotation: currentMetadata.angle
                         transform: Scale {
                             origin.x: photo.width / 2
                             origin.y: photo.height / 2
-                            xScale: isShowingOriginal ? originalMetadata.flipH : currentMetadata.flipH
-                            yScale: isShowingOriginal ? originalMetadata.flipV : currentMetadata.flipV
+                            xScale: currentMetadata.flipH
+                            yScale: currentMetadata.flipV
+                        }
+                        Canvas {
+                            id: pickerHelper
+                            width: 1
+                            height: 1
+                            visible: false
+                            renderTarget: Canvas.Image
+                        }
+                        Canvas {
+                            id: drawingCanvas
+                            z: 100
+                            anchors.fill: parent
+                            renderTarget: Canvas.Image
+                            renderStrategy: Canvas.Threaded
+                            property real lastX: 0
+                            property real lastY: 0
+                            property real currentX: 0
+                            property real currentY: 0
+                            property bool contextReady: false
+                            onAvailableChanged: {
+                                if (available && drawingScreen.initialCanvasData !== "") {
+                                    loadImage(drawingScreen.initialCanvasData);
+                                }
+                            }
+                            onImageLoaded: {
+                                var ctx = getContext("2d");
+                                ctx.drawImage(drawingScreen.initialCanvasData, 0, 0, width, height);
+                                requestPaint();
+                            }
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                if (selectedTool !== "Text" && lastX === 0 && lastY === 0) {
+                                    lastX = currentX
+                                    lastY = currentY
+                                    return
+                                }
+                                ctx.save()
+                                ctx.lineJoin = "round"
+                                ctx.lineCap = "round"
+                                if (selectedTool === "Text") {
+                                    ctx.fillStyle = toolOptions.color
+                                    ctx.globalAlpha = toolOptions.textOpacity
+                                    ctx.font = toolOptions.textSize + "px sans-serif"
+                                    if (toolOptions.textSpacing !== undefined) {
+                                        ctx.letterSpacing = toolOptions.textSpacing + "px"
+                                    }
+                                    let tekstDoWpisania = toolOptions.currentText || "Twój Tekst"
+                                    ctx.fillText(tekstDoWpisania, currentX, currentY)
+                                }
+                                else if (selectedTool === "Pencil") {
+                                    ctx.lineWidth = toolOptions.pencilSize
+                                    ctx.strokeStyle = toolOptions.color
+                                    ctx.globalAlpha = toolOptions.pencilOpacity
+                                    ctx.beginPath()
+                                    ctx.moveTo(lastX, lastY)
+                                    ctx.lineTo(currentX, currentY)
+                                    ctx.stroke()
+                                } else if (selectedTool === "Pen") {
+                                    ctx.lineWidth = toolOptions.penSize
+                                    ctx.strokeStyle = toolOptions.color
+                                    ctx.globalAlpha = toolOptions.penOpacity
+                                    let t = 1.0 - (toolOptions.penSmoothing || 0.0)
+                                    currentX = lastX + (currentX - lastX) * t
+                                    currentY = lastY + (currentY - lastY) * t
+                                    ctx.beginPath()
+                                    ctx.moveTo(lastX, lastY)
+                                    ctx.lineTo(currentX, currentY)
+                                    ctx.stroke()
+                                } else if (selectedTool === "Eraser") {
+                                    ctx.globalCompositeOperation = "destination-out"
+                                    ctx.lineWidth = toolOptions.eraserSize
+                                    ctx.beginPath()
+                                    ctx.moveTo(lastX, lastY)
+                                    ctx.lineTo(currentX, currentY)
+                                    ctx.stroke()
+                                }
+                                ctx.restore()
+                                if (selectedTool !== "Text") {
+                                    lastX = currentX
+                                    lastY = currentY
+                                }
+                            }
+                            function pickColor(mouseX, mouseY) {
+                                photo.grabToImage(function(result) {
+                                    if (!result) return;
+                                    let px = Math.floor(mouseX);
+                                    let py = Math.floor(mouseY);
+                                    px = Math.max(0, Math.min(px, photo.width));
+                                    py = Math.max(0, Math.min(py, photo.height));
+                                    var ctx = pickerHelper.getContext("2d");
+                                    ctx.clearRect(0, 0, 1, 1);
+                                    ctx.drawImage(result.url, px, py, 1, 1, 0, 0, 1, 1);
+                                    var pixel = ctx.getImageData(0, 0, 1, 1).data;
+                                    if (pixel[3] > 0) {
+                                        let pickedHex = "#" +
+                                            pixel[0].toString(16).padStart(2, '0') +
+                                            pixel[1].toString(16).padStart(2, '0') +
+                                            pixel[2].toString(16).padStart(2, '0');
+                                        let updatedOptions = Object.assign({}, toolOptions);
+                                        updatedOptions.color = pickedHex;
+                                        toolOptions = updatedOptions;
+                                    }
+                                });
+                            }
                         }
                         layer.enabled: true
                         layer.effect: MultiEffect {
                             id: multiEffectItem
-                            contrast: isShowingOriginal ? (originalMetadata.contrast/100) : (currentMetadata.contrast / 100)
-                            saturation: isShowingOriginal ? (originalMetadata.saturation / 100) : (currentMetadata.saturation / 100)
-                            brightness: isShowingOriginal ? (originalMetadata.exposition / 100) : (currentMetadata.exposition / 100)
-                            blurEnabled: isShowingOriginal ? (originalMetadata.blur > 0) : (currentMetadata.blur > 0)
-                            blur: isShowingOriginal ? (originalMetadata.blur / 100) : (currentMetadata.blur / 100)
-                            colorization: isShowingOriginal ? Math.abs(originalMetadata.temperature / 100) : Math.abs(currentMetadata.temperature / 100)
+                            contrast: false ? (originalMetadata.contrast/100) : (currentMetadata.contrast / 100)
+                            saturation: false ? (originalMetadata.saturation / 100) : (currentMetadata.saturation / 100)
+                            brightness: false ? (originalMetadata.exposition / 100) : (currentMetadata.exposition / 100)
+                            blurEnabled: false ? (originalMetadata.blur > 0) : (currentMetadata.blur > 0)
+                            blur: false ? (originalMetadata.blur / 100) : (currentMetadata.blur / 100)
+                            colorization: false ? Math.abs(originalMetadata.temperature / 100) : Math.abs(currentMetadata.temperature / 100)
                             colorizationColor: {
-                                let temp = isShowingOriginal ? originalMetadata.temperature : currentMetadata.temperature;
+                                let temp = false ? originalMetadata.temperature : currentMetadata.temperature;
                                 return temp > 0 ? "#FFCC00" : "#00CCFF";
                             }
                             layer.enabled: true
                             layer.effect: ShaderEffect {
                                 property var source: multiEffectItem
-                                property real f_negatyw: (isShowingOriginal ? originalMetadata.f_negatyw : currentMetadata.f_negatyw) / 100.0
-                                property real f_krawedzie: (isShowingOriginal ? originalMetadata.f_krawedzie : currentMetadata.f_krawedzie) / 100.0
-                                property real f_szum: (isShowingOriginal ? originalMetadata.f_szum : currentMetadata.f_szum) / 100.0
-                                property real f_rozmycie_kol: (isShowingOriginal ? originalMetadata.f_rozmycie_kol : currentMetadata.f_rozmycie_kol) / 100.0
-                                property real f_pixel_art: (isShowingOriginal ? originalMetadata.f_pixel_art : currentMetadata.f_pixel_art) / 100.0
-                                property real f_stary_film: (isShowingOriginal ? originalMetadata.f_stary_film : currentMetadata.f_stary_film) / 100.0
-                                property real f_cieple_lato: (isShowingOriginal ? originalMetadata.f_cieple_lato : currentMetadata.f_cieple_lato) / 100.0
-                                property real f_progowanie: (isShowingOriginal ? originalMetadata.f_progowanie : currentMetadata.f_progowanie) / 100.0
-                                property real f_sepia_retro: (isShowingOriginal ? originalMetadata.f_sepia_retro : currentMetadata.f_sepia_retro) / 100.0
-                                property real f_zimna_noc: (isShowingOriginal ? originalMetadata.f_zimna_noc : currentMetadata.f_zimna_noc) / 100.0
+                                property real f_negatyw: (false ? originalMetadata.f_negatyw : currentMetadata.f_negatyw) / 100.0
+                                property real f_krawedzie: (false ? originalMetadata.f_krawedzie : currentMetadata.f_krawedzie) / 100.0
+                                property real f_szum: (false ? originalMetadata.f_szum : currentMetadata.f_szum) / 100.0
+                                property real f_rozmycie_kol: (false ? originalMetadata.f_rozmycie_kol : currentMetadata.f_rozmycie_kol) / 100.0
+                                property real f_pixel_art: (false ? originalMetadata.f_pixel_art : currentMetadata.f_pixel_art) / 100.0
+                                property real f_stary_film: (false ? originalMetadata.f_stary_film : currentMetadata.f_stary_film) / 100.0
+                                property real f_cieple_lato: (false ? originalMetadata.f_cieple_lato : currentMetadata.f_cieple_lato) / 100.0
+                                property real f_progowanie: (false ? originalMetadata.f_progowanie : currentMetadata.f_progowanie) / 100.0
+                                property real f_sepia_retro: (false ? originalMetadata.f_sepia_retro : currentMetadata.f_sepia_retro) / 100.0
+                                property real f_zimna_noc: (false ? originalMetadata.f_zimna_noc : currentMetadata.f_zimna_noc) / 100.0
                                 property real srcWidth: photo.sourceSize.width
                                 property real srcHeight: photo.sourceSize.height
                                 fragmentShader: "qrc:/shaders/filters.frag.qsb"
@@ -865,8 +942,18 @@ Rectangle {
                         drag.minimumY: -photo.height / 2
                         drag.maximumY: imageContainer.height - photo.height / 2
                         onPressed: (mouse) => {
+                           var coords = dragArea.mapToItem(photo, mouse.x, mouse.y)
+                           drawingCanvas.currentX = coords.x
+                           drawingCanvas.currentY = coords.y
+                           if (selectedTool === "Text") {
+                               drawingCanvas.lastX = 0
+                               drawingCanvas.lastY = 0
+                               drawingCanvas.requestPaint()
+                           }
+                           if (selectedTool === "Picker" && mouse.button === Qt.LeftButton) {
+                               drawingCanvas.pickColor(coords.x, coords.y)
+                           }
                            if (!panMode && mouse.button === Qt.LeftButton) {
-                               var coords = dragArea.mapToItem(drawingCanvas, mouse.x, mouse.y)
                                drawingCanvas.lastX = coords.x
                                drawingCanvas.lastY = coords.y
                            }
@@ -876,17 +963,16 @@ Rectangle {
                         }
                         onPositionChanged: (mouse) => {
                             if (!panMode && (mouse.buttons & Qt.LeftButton)) {
-                                var coords = dragArea.mapToItem(drawingCanvas, mouse.x, mouse.y)
-                                if (drawingCanvas.lastX === 0 && drawingCanvas.lastY === 0) {
-                                    drawingCanvas.lastX = coords.x
-                                    drawingCanvas.lastY = coords.y
-                                }
+                                if (selectedTool === "Text") return
+                                var coords = dragArea.mapToItem(photo, mouse.x, mouse.y)
                                 drawingCanvas.currentX = coords.x
                                 drawingCanvas.currentY = coords.y
                                 drawingCanvas.requestPaint()
-                                drawingCanvas.lastX = coords.x
-                                drawingCanvas.lastY = coords.y
                             }
+                        }
+                        onReleased: {
+                            drawingCanvas.lastX = 0;
+                            drawingCanvas.lastY = 0;
                         }
                         onWheel: (wheel) => {
                             if (wheel.angleDelta.y > 0) {
@@ -899,50 +985,6 @@ Rectangle {
                             photo.x = (parent.width - photo.width) / 2
                             photo.y = (parent.height - photo.height) / 2
                             zoomSlider.value = 1.0
-                        }
-                    }
-                    Canvas {
-                        id: drawingCanvas
-                        z: 100
-                        x: photo.x
-                        y: photo.y
-                        width: photo.width
-                        height: photo.height
-                        visible: true
-                        opacity: 1.0
-                        layer.enabled: true
-                        scale: photo.scale
-                        rotation: photo.rotation
-                        transformOrigin: photo.transformOrigin
-                        renderTarget: Canvas.Image
-                        renderStrategy: Canvas.Threaded
-                        property real lastX: 0
-                        property real lastY: 0
-                        property real currentX: 0
-                        property real currentY: 0
-                        onAvailableChanged: {
-                            if (available) {
-                                var ctx = getContext("2d");
-                                ctx.clearRect(0, 0, width, height);
-                                requestPaint();
-                            }
-                        }
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.lineJoin = "round"
-                            ctx.lineCap = "round"
-                            ctx.lineWidth = (selectedTool === "Pencil" ? toolOptions.pencilSize : toolOptions.penSize) || 5
-                            ctx.strokeStyle = toolOptions.color || "#ff0000"
-                            ctx.beginPath()
-                            ctx.moveTo(lastX, lastY)
-                            ctx.lineTo(currentX, currentY)
-                            ctx.stroke()
-                        }
-                        transform: Scale {
-                            origin.x: drawingCanvas.width / 2
-                            origin.y: drawingCanvas.height / 2
-                            xScale: isShowingOriginal ? originalMetadata.flipH : currentMetadata.flipH
-                            yScale: isShowingOriginal ? originalMetadata.flipV : currentMetadata.flipV
                         }
                     }
                 }
@@ -993,7 +1035,6 @@ Rectangle {
                         ToolTip.visible: pressed
                         ToolTip.delay: 0
                         ToolTip.text: Math.round(value * 100) + "%"
-                        onPressedChanged: if (!pressed) saveState()
                         background: Rectangle {
                             x: zoomSlider.leftPadding
                             y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2

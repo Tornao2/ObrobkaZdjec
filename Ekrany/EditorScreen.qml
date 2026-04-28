@@ -384,6 +384,14 @@ Rectangle {
                                 zoomToFit();
                             }
                         }
+                        Canvas {
+                            id: drawingCanvas
+                            z: 100
+                            anchors.fill: parent
+                            renderTarget: Canvas.Image
+                            renderStrategy: Canvas.Threaded
+                            property bool contextReady: false
+                        }
                         layer.enabled: true
                         layer.effect: MultiEffect {
                             id: multiEffectItem
@@ -478,7 +486,9 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": currentMetadata })
+                        let snapshot = drawingCanvas.toDataURL();
+                        let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": currentMetadata,
+                                                           "initialCanvasData": snapshot })
                         manipPage.manipulationFinished.connect(function(info) {
                             photo.autoTransform = true
                             currentMetadata = info
@@ -517,7 +527,9 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let correctPage = mainStack.push("CorrectionScreen.qml", { "imageInfo": currentMetadata })
+                        let snapshot = drawingCanvas.toDataURL();
+                        let correctPage = mainStack.push("CorrectionScreen.qml", { "imageInfo": currentMetadata,
+                                                             "initialCanvasData": snapshot })
                         correctPage.correctionFinished.connect(function(info) {
                             currentMetadata = info
                             commitState()
@@ -548,7 +560,9 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+                        let snapshot = drawingCanvas.toDataURL();
+                        let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                            "initialCanvasData": snapshot })
                         filterPage.filteringFinished.connect(function(info) {
                             currentMetadata = info
                             commitState()
@@ -579,9 +593,18 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+                        let snapshot = drawingCanvas.toDataURL();
+                        let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
+                                                          "initialCanvasData": snapshot  })
                         drawPage.drawingFinished.connect(function(info) {
-                            currentMetadata = info
+                            currentMetadata = info.metadata
+                            var ctx = drawingCanvas.getContext("2d");
+                            drawingCanvas.loadImage(info.image);
+                            drawingCanvas.imageLoaded.connect(function() {
+                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                                drawingCanvas.requestPaint();
+                            });
                             commitState()
                         })
                     }
@@ -886,6 +909,9 @@ Rectangle {
             if (startPage && typeof startPage.dodajDoHistorii === "function") {
                 startPage.dodajDoHistorii(newPath)
             }
+            var ctx = drawingCanvas.getContext("2d");
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            drawingCanvas.requestPaint();
         }
     }
     ConfirmDialog {
@@ -964,6 +990,9 @@ Rectangle {
             if (startPage && typeof startPage.dodajDoHistorii === "function") {
                 startPage.dodajDoHistorii(imagePath)
             }
+            var ctx = drawingCanvas.getContext("2d");
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            drawingCanvas.requestPaint();
         }
     }
     function zoomToFit() {
@@ -1096,6 +1125,48 @@ Rectangle {
             filterPage.filterStrength = currentMetadata["f_cieple_lato"]
             filterPage.activeProperty = "f_cieple_lato"
             filterPage.filteringFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Ołówek") {
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            drawPage.selectedTool = "Pencil"
+            drawPage.drawingFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Pióro") {
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            drawPage.selectedTool = "Pen"
+            drawPage.drawingFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Gumka") {
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            drawPage.selectedTool = "Eraser"
+            drawPage.drawingFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Próbnik") {
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            drawPage.selectedTool = "Picker"
+            drawPage.drawingFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Tekst") {
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            drawPage.selectedTool = "Text"
+            drawPage.drawingFinished.connect(function(info) {
+                currentMetadata = info
+                commitState()
+            })
+        } else if (actionName === "Kolor") {
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            drawPage.selectedTool = "Color"
+            drawPage.drawingFinished.connect(function(info) {
                 currentMetadata = info
                 commitState()
             })

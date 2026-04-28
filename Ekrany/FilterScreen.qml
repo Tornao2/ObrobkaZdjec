@@ -19,6 +19,7 @@ Rectangle {
     property real filterStrength: 30.0
     property string activeProperty: ""
     signal filteringFinished(var finalInfo)
+    property string initialCanvasData: ""
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function saveState() {
         if (blockHistory) return;
@@ -314,6 +315,24 @@ Rectangle {
                             origin.y: photo.height / 2
                             xScale: isShowingOriginal ? originalMetadata.flipH : currentMetadata.flipH
                             yScale: isShowingOriginal ? originalMetadata.flipV : currentMetadata.flipV
+                        }
+                        Canvas {
+                            id: drawingCanvas
+                            z: 100
+                            anchors.fill: parent
+                            renderTarget: Canvas.Image
+                            renderStrategy: Canvas.Threaded
+                            property bool contextReady: false
+                            onAvailableChanged: {
+                                if (available && filterScreen.initialCanvasData !== "") {
+                                    loadImage(filterScreen.initialCanvasData);
+                                }
+                            }
+                            onImageLoaded: {
+                                var ctx = getContext("2d");
+                                ctx.drawImage(filterScreen.initialCanvasData, 0, 0, width, height);
+                                requestPaint();
+                            }
                         }
                         layer.enabled: true
                         layer.effect: MultiEffect {

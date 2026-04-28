@@ -23,6 +23,7 @@ Rectangle {
     property int historyIndex: -1
     property bool isShowingOriginal: false
     property bool blockHistory: false
+    property string initialCanvasData: ""
     signal correctionFinished(var finalInfo)
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function saveState() {
@@ -291,6 +292,24 @@ Rectangle {
                             origin.y: photo.height / 2
                             xScale: isShowingOriginal ? originalMetadata.flipH : currentMetadata.flipH
                             yScale: isShowingOriginal ? originalMetadata.flipV : currentMetadata.flipV
+                        }
+                        Canvas {
+                            id: drawingCanvas
+                            z: 100
+                            anchors.fill: parent
+                            renderTarget: Canvas.Image
+                            renderStrategy: Canvas.Threaded
+                            property bool contextReady: false
+                            onAvailableChanged: {
+                                if (available && correctionScreen.initialCanvasData !== "") {
+                                    loadImage(correctionScreen.initialCanvasData);
+                                }
+                            }
+                            onImageLoaded: {
+                                var ctx = getContext("2d");
+                                ctx.drawImage(correctionScreen.initialCanvasData, 0, 0, width, height);
+                                requestPaint();
+                            }
                         }
                         layer.enabled: true
                         layer.effect: MultiEffect {

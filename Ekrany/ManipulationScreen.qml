@@ -29,6 +29,7 @@
         property var history: []
         property int historyIndex: -1
         property bool isShowingOriginal: false
+        property string initialCanvasData: ""
         property bool blockHistory: false
         signal manipulationFinished(var finalInfo)
         function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
@@ -374,6 +375,24 @@
                                 origin.y: photo.height / 2
                                 xScale: isShowingOriginal ? originalInfo.flipH : workingInfo.flipH
                                 yScale: isShowingOriginal ? originalInfo.flipV : workingInfo.flipV
+                            }
+                            Canvas {
+                                id: drawingCanvas
+                                z: 100
+                                anchors.fill: parent
+                                renderTarget: Canvas.Image
+                                renderStrategy: Canvas.Threaded
+                                property bool contextReady: false
+                                onAvailableChanged: {
+                                    if (available && manipulationScreen.initialCanvasData !== "") {
+                                        loadImage(manipulationScreen.initialCanvasData);
+                                    }
+                                }
+                                onImageLoaded: {
+                                    var ctx = getContext("2d");
+                                    ctx.drawImage(manipulationScreen.initialCanvasData, 0, 0, width, height);
+                                    requestPaint();
+                                }
                             }
                             layer.enabled: true
                             layer.effect: MultiEffect {

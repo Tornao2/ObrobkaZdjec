@@ -458,10 +458,140 @@ Button {
             x: parent.width; y: 0
             background: Rectangle { implicitWidth: 200; color: "#8E9191"; radius: 6; border.color: "#7A7D7D" }
             MenuItem {
-                text: "Ołówek"; onTriggered: control.assignedFunction = "Sepia"
+                text: "Ołówek"; onTriggered: control.assignedFunction = "Ołówek"
                 implicitHeight: 50
                 arrow: null; indicator: null
                 contentItem: Text { text: "Ołówek"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
+                background: Rectangle {
+                    color: parent.highlighted ? "#33000000" : "transparent"
+                    radius: 8
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    Canvas {
+                        anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.strokeStyle = "#444";
+                            ctx.lineWidth = 4;
+                            var len = 8;
+                            ctx.beginPath(); ctx.moveTo(0, len); ctx.lineTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, 0); ctx.lineTo(width, 0); ctx.lineTo(width, len); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(0, height - len); ctx.lineTo(0, height); ctx.lineTo(len, height); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, height); ctx.lineTo(width, height); ctx.lineTo(width, height - len); ctx.stroke();
+                        }
+                    }
+                }
+            }
+            MenuItem {
+                text: "Pióro"; onTriggered: control.assignedFunction = "Pióro"
+                implicitHeight: 50
+                arrow: null; indicator: null
+                contentItem: Text { text: "Pióro"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
+                background: Rectangle {
+                    color: parent.highlighted ? "#33000000" : "transparent"
+                    radius: 8
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    Canvas {
+                        anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.strokeStyle = "#444";
+                            ctx.lineWidth = 4;
+                            var len = 8;
+                            ctx.beginPath(); ctx.moveTo(0, len); ctx.lineTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, 0); ctx.lineTo(width, 0); ctx.lineTo(width, len); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(0, height - len); ctx.lineTo(0, height); ctx.lineTo(len, height); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, height); ctx.lineTo(width, height); ctx.lineTo(width, height - len); ctx.stroke();
+                        }
+                    }
+                }
+            }
+            MenuItem {
+                text: "Gumka"; onTriggered: control.assignedFunction = "Gumka"
+                implicitHeight: 50
+                arrow: null; indicator: null
+                contentItem: Text { text: "Gumka"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
+                background: Rectangle {
+                    color: parent.highlighted ? "#33000000" : "transparent"
+                    radius: 8
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    Canvas {
+                        anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.strokeStyle = "#444";
+                            ctx.lineWidth = 4;
+                            var len = 8;
+                            ctx.beginPath(); ctx.moveTo(0, len); ctx.lineTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, 0); ctx.lineTo(width, 0); ctx.lineTo(width, len); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(0, height - len); ctx.lineTo(0, height); ctx.lineTo(len, height); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, height); ctx.lineTo(width, height); ctx.lineTo(width, height - len); ctx.stroke();
+                        }
+                    }
+                }
+            }
+            MenuItem {
+                text: "Kolor"; onTriggered: control.assignedFunction = "Kolor"
+                implicitHeight: 50
+                arrow: null; indicator: null
+                contentItem: Text { text: "Kolor"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
+                background: Rectangle {
+                    color: parent.highlighted ? "#33000000" : "transparent"
+                    radius: 8
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    Canvas {
+                        anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.strokeStyle = "#444";
+                            ctx.lineWidth = 4;
+                            var len = 8;
+                            ctx.beginPath(); ctx.moveTo(0, len); ctx.lineTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, 0); ctx.lineTo(width, 0); ctx.lineTo(width, len); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(0, height - len); ctx.lineTo(0, height); ctx.lineTo(len, height); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, height); ctx.lineTo(width, height); ctx.lineTo(width, height - len); ctx.stroke();
+                        }
+                    }
+                }
+            }
+            MenuItem {
+                text: "Tekst"; onTriggered: control.assignedFunction = "Tekst"
+                implicitHeight: 50
+                arrow: null; indicator: null
+                contentItem: Text { text: "Tekst"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
+                background: Rectangle {
+                    color: parent.highlighted ? "#33000000" : "transparent"
+                    radius: 8
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    Canvas {
+                        anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.strokeStyle = "#444";
+                            ctx.lineWidth = 4;
+                            var len = 8;
+                            ctx.beginPath(); ctx.moveTo(0, len); ctx.lineTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, 0); ctx.lineTo(width, 0); ctx.lineTo(width, len); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(0, height - len); ctx.lineTo(0, height); ctx.lineTo(len, height); ctx.stroke();
+                            ctx.beginPath(); ctx.moveTo(width - len, height); ctx.lineTo(width, height); ctx.lineTo(width, height - len); ctx.stroke();
+                        }
+                    }
+                }
+            }
+            MenuItem {
+                text: "Próbnik"; onTriggered: control.assignedFunction = "Próbnik"
+                implicitHeight: 50
+                arrow: null; indicator: null
+                contentItem: Text { text: "Próbnik"; font.pixelSize: 14; font.weight: Font.Medium; color: "black"; verticalAlignment: Text.AlignVCenter;}
                 background: Rectangle {
                     color: parent.highlighted ? "#33000000" : "transparent"
                     radius: 8

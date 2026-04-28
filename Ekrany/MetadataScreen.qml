@@ -25,9 +25,9 @@ Rectangle {
         historyIndex = history.length - 1;
     }
     Item {
-            id: focusThief
-            focus: true
-        }
+        id: focusThief
+        focus: true
+    }
     TapHandler {
         onTapped: {
             focusThief.forceActiveFocus()
