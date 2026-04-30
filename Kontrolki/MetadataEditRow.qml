@@ -32,6 +32,7 @@ RowLayout {
         Layout.fillWidth: true
         font.pixelSize: 16
         selectByMouse: true
+        activeFocusOnTab: !root.isReadOnly
         onEditingFinished: {
             if (value !== text) {
                 root.edited(text)

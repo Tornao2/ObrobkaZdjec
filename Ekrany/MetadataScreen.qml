@@ -66,12 +66,9 @@ Rectangle {
     function applyState(state) {
         if (!state) return;
         isRestoring = true;
-        workingInfo = JSON.parse(JSON.stringify(state));
-        nameRow.value = stripExtension(workingInfo.name || "");
-        dateRow.value = workingInfo.date || "";
-        artistRow.value = workingInfo.artist || "";
-        copyrightRow.value = workingInfo.copyright || "";
-        descriptionArea.text = workingInfo.description || "";
+        let newState = JSON.parse(JSON.stringify(state));
+        workingInfo = {};
+        workingInfo = newState;
         isRestoring = false;
     }
     onVisibleChanged: {
@@ -82,6 +79,20 @@ Rectangle {
             history = [];
             historyIndex = -1;
             saveStep();
+        }
+    }
+    Keys.forwardTo: [historyHandler]
+    Item {
+        id: historyHandler
+        Keys.onPressed: (event) => {
+            if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier)) {
+                undoBtn.clicked();
+                event.accepted = true;
+            }
+            if (event.key === Qt.Key_Y && (event.modifiers & Qt.ControlModifier)) {
+                redoBtn.clicked();
+                event.accepted = true;
+            }
         }
     }
     ColumnLayout {
@@ -123,11 +134,7 @@ Rectangle {
                             radius: 4
                         }
                         onClicked: {
-                            if (hasChanges()) {
-                                confirmExitDialog.open();
-                            } else {
-                                mainStack.pop();
-                            }
+                            mainStack.pop()
                         }
                     }
                     RowLayout {
@@ -140,7 +147,7 @@ Rectangle {
                             Layout.preferredWidth: 50; Layout.preferredHeight: 50
                             icon.source: "../Resources/undo.svg"
                             iconSize: 35
-                            tooltipText: "Cofnij"
+                            tooltipText: "Cofnij (Ctrl+Z)"
                             onClicked: {
                                 historyIndex--;
                                 applyState(history[historyIndex]);
@@ -172,7 +179,7 @@ Rectangle {
                                 historyIndex++;
                                 applyState(history[historyIndex]);
                             }
-                            tooltipText: "Ponów"
+                            tooltipText: "Ponów (Ctrl+Y)"
                         }
                         CustomButton {
                             id: actionBtn
@@ -222,7 +229,9 @@ Rectangle {
                                     label: "Nazwa pliku:"
                                     value: stripExtension(workingInfo.name || "")
                                     onEdited: (newValue) => {
-                                        workingInfo.name = newValue;
+                                        let temp = workingInfo
+                                        temp.name = newValue;
+                                        workingInfo = temp
                                         saveStep();
                                     }
                                     Layout.alignment: Qt.AlignHCenter
@@ -235,7 +244,9 @@ Rectangle {
                                     label: "Data wykonania:"
                                     value: workingInfo.date || ""
                                     onEdited: (newValue) => {
-                                        workingInfo.date = newValue;
+                                                  let temp = workingInfo
+                                                  temp.date = newValue;
+                                                  workingInfo = temp
                                         saveStep();
                                     }
                                     inputMask: "0000-00-00 00:00;_"
@@ -355,7 +366,9 @@ Rectangle {
                                     label: "Autor/Twórca:"
                                     value: workingInfo.artist || ""
                                     onEdited: (newValue) => {
-                                        workingInfo.artist = newValue;
+                                                  let temp = workingInfo
+                                                  temp.artist = newValue;
+                                                  workingInfo = temp
                                         saveStep();
                                     }
                                     Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 1000
@@ -367,7 +380,9 @@ Rectangle {
                                     label: "Prawa autorskie:"
                                     value: workingInfo.copyright || ""
                                     onEdited: (newValue) => {
-                                        workingInfo.copyright = newValue;
+                                                  let temp = workingInfo
+                                                  temp.copyright = newValue;
+                                                  workingInfo = temp
                                         saveStep();
                                     }
                                     Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 1000
@@ -404,7 +419,16 @@ Rectangle {
                                         Layout.preferredHeight: 120
                                         onTextChanged: {
                                             if (!isRestoring && workingInfo.description !== text) {
-                                                workingInfo.description = text;
+                                                let temp = workingInfo
+                                                temp.description = text;
+                                                workingInfo = temp
+                                                saveStep()
+                                            }
+                                        }
+                                        Keys.onPressed: (event) => {
+                                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                                nextItemInFocusChain().forceActiveFocus();
+                                                event.accepted = true;
                                             }
                                         }
                                         Layout.fillWidth: true
@@ -514,10 +538,5 @@ Rectangle {
             Layout.preferredHeight: 50
             color: "#A0A3A3"
         }
-    }
-    ConfirmDialog {
-        id: confirmExitDialog
-        message: "Masz niezapisane zmiany. Czy na pewno chcesz wyjść?"
-        onConfirmed: mainStack.pop()
     }
 }

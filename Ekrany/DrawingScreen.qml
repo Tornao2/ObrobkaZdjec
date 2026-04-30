@@ -27,6 +27,10 @@ Rectangle {
                                }
     signal drawingFinished(var finalInfo)
     property string initialCanvasData: ""
+    property var history: []
+    property int historyIndex: -1
+    property bool blockHistory: false
+    property bool finishedInit: false
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     Component.onCompleted: {
         currentMetadata = clone(imageInfo);
@@ -36,6 +40,7 @@ Rectangle {
             currentMetadata.crop.w, currentMetadata.crop.h
         );
         zoomToFit();
+        finishedInit = true
     }
     function stripExtension(fileName) {
         if (!fileName) return "";
@@ -49,6 +54,36 @@ Rectangle {
         };
         drawingFinished(finalData);
         mainStack.pop()
+    }
+    Keys.forwardTo: [historyHandler]
+    Item {
+        id: historyHandler
+        Keys.onPressed: (event) => {
+            if (event.key === Qt.Key_1) pencilBtn.clicked()
+            else if (event.key === Qt.Key_3) penBtn.clicked()
+            else if (event.key === Qt.Key_2) textBtn.clicked()
+            else if (event.key === Qt.Key_5) eraserBtn.clicked()
+            else if (event.key === Qt.Key_4) pickerBtn.clicked()
+            else if (event.key === Qt.Key_6) colorBtn.clicked()
+            else if (event.modifiers & Qt.ControlModifier) {
+                if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
+                    zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                } else if (event.key === Qt.Key_Minus) {
+                    zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                } else if (event.key === Qt.Key_0) {
+                    zoomSlider.value = 1.0
+                    photo.x = (imageContainer.width - photo.width) / 2
+                    photo.y = (imageContainer.height - photo.height) / 2
+                } else if (event.key === Qt.Key_F) {
+                    zoomToFit()
+                }
+            }
+        }
+        Connections {
+            target: textInputSource
+            function onAccepted() { mainRoot.forceActiveFocus() }
+            function onEditingFinished() { mainRoot.forceActiveFocus() }
+        }
     }
     ColumnLayout {
         anchors.fill: parent
@@ -107,7 +142,7 @@ Rectangle {
                             Layout.preferredWidth: 60; Layout.preferredHeight: 60
                             iconSize: 50
                             icon.source: "../Resources/edit-pencil.svg"
-                            tooltipText: "Ołówek"
+                            tooltipText: "Ołówek(1)"
                             isSelected: selectedTool == "Pencil"
                             onClicked: {
                                 selectedTool = "Pencil"
@@ -119,7 +154,7 @@ Rectangle {
                             Layout.preferredWidth: 60; Layout.preferredHeight: 60
                             iconSize: 50
                             icon.source: "../Resources/text.svg"
-                            tooltipText: "Tekst"
+                            tooltipText: "Tekst(2)"
                             isSelected: selectedTool == "Text"
                             onClicked: {
                                 selectedTool = "Text"
@@ -131,7 +166,7 @@ Rectangle {
                             Layout.preferredWidth: 60; Layout.preferredHeight: 60
                             iconSize: 50
                             icon.source: "../Resources/design-nib.svg"
-                            tooltipText: "Pióro"
+                            tooltipText: "Pióro(3)"
                             isSelected: selectedTool == "Pen"
                             onClicked: {
                                 selectedTool = "Pen"
@@ -143,7 +178,7 @@ Rectangle {
                             Layout.preferredWidth: 60; Layout.preferredHeight: 60
                             iconSize: 50
                             icon.source: "../Resources/color-picker.svg"
-                            tooltipText: "Wybierz kolor ze zdjęcia"
+                            tooltipText: "Wybierz kolor ze zdjęcia(4)"
                             isSelected: selectedTool == "Picker"
                             onClicked: {
                                 selectedTool = "Picker"
@@ -155,7 +190,7 @@ Rectangle {
                             Layout.preferredWidth: 60; Layout.preferredHeight: 60
                             iconSize: 50
                             icon.source: "../Resources/erase.svg"
-                            tooltipText: "Wymaż"
+                            tooltipText: "Wymaż(5)"
                             isSelected: selectedTool == "Eraser"
                             onClicked: {
                                 selectedTool = "Eraser"
@@ -167,7 +202,7 @@ Rectangle {
                             Layout.preferredWidth: 60; Layout.preferredHeight: 60
                             iconSize: 50
                             icon.source: "../Resources/circle.svg"
-                            tooltipText: "Wybierz kolor"
+                            tooltipText: "Wybierz kolor(6)"
                             isSelected: selectedTool == "Color"
                             previewColor: toolOptions.color || "red"
                             onClicked: {
@@ -808,10 +843,12 @@ Rectangle {
                             }
                             onImageLoaded: {
                                 var ctx = getContext("2d");
+                                ctx.imageSmoothingEnabled = false;
                                 ctx.drawImage(drawingScreen.initialCanvasData, 0, 0, width, height);
                                 requestPaint();
                             }
                             onPaint: {
+                                if(!finishedInit) return
                                 var ctx = getContext("2d")
                                 if (selectedTool !== "Text" && lastX === 0 && lastY === 0) {
                                     lastX = currentX
@@ -873,6 +910,7 @@ Rectangle {
                                     py = Math.max(0, Math.min(py, photo.height));
                                     var ctx = pickerHelper.getContext("2d");
                                     ctx.clearRect(0, 0, 1, 1);
+                                    ctx.imageSmoothingEnabled = false;
                                     ctx.drawImage(result.url, px, py, 1, 1, 0, 0, 1, 1);
                                     var pixel = ctx.getImageData(0, 0, 1, 1).data;
                                     if (pixel[3] > 0) {
@@ -945,7 +983,7 @@ Rectangle {
                            var coords = dragArea.mapToItem(photo, mouse.x, mouse.y)
                            drawingCanvas.currentX = coords.x
                            drawingCanvas.currentY = coords.y
-                           if (selectedTool === "Text") {
+                           if (selectedTool === "Text" && mouse.button === Qt.LeftButton) {
                                drawingCanvas.lastX = 0
                                drawingCanvas.lastY = 0
                                drawingCanvas.requestPaint()
@@ -1024,7 +1062,7 @@ Rectangle {
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
-                        tooltipText: "Oddal zdjęcie"
+                        tooltipText: "Oddal zdjęcie(Ctrl + -)"
                     }
                     Slider {
                         id: zoomSlider
@@ -1060,7 +1098,7 @@ Rectangle {
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
-                        tooltipText: "Przybliż zdjęcie"
+                        tooltipText: "Przybliż zdjęcie(Ctrl + +)"
                     }
                 }
                 CustomButton {
@@ -1068,7 +1106,7 @@ Rectangle {
                     icon.source: "../Resources/maximize.svg"
                     iconSize: 35
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                    tooltipText: "Dopasuj do ekranu"
+                    tooltipText: "Dopasuj do ekranu(Ctrl+F)"
                     onClicked: zoomToFit()
                 }
             }

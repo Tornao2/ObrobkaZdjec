@@ -54,6 +54,38 @@ Rectangle {
         if (!fileName) return "";
         return fileName.indexOf('.') !== -1 ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
     }
+    focus: true
+    Keys.forwardTo: [filterKeyHandler]
+    Item {
+        id: filterKeyHandler
+        Keys.onPressed: (event) => {
+            let ctrl = event.modifiers & Qt.ControlModifier
+            if (ctrl) {
+                if (event.key === Qt.Key_Z) {
+                    if (undoBtn.enabled) undoBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Y) {
+                    if (redoBtn.enabled) redoBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
+                    zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Minus) {
+                    zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_0) {
+                    zoomSlider.value = 1.0
+                    photo.x = (imageContainer.width - photo.width) / 2
+                    photo.y = (imageContainer.height - photo.height) / 2
+                    event.accepted = true
+                } else if (event.key === Qt.Key_F) {
+                    zoomToFit()
+                    event.accepted = true
+                }
+                return
+            }
+        }
+    }
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -110,12 +142,10 @@ Rectangle {
                             iconSize: 35
                             enabled: historyIndex > 0
                             opacity: enabled ? 1.0 : 0.4
-                            tooltipText: "Cofnij"
+                            tooltipText: "Cofnij (Ctrl+Z)"
                             onClicked: {
-                                if (historyIndex > 0) {
-                                    historyIndex--
-                                    applyState(history[historyIndex])
-                                }
+                                historyIndex--;
+                                applyState(history[historyIndex]);
                             }
                         }
                         CustomButton {
@@ -140,13 +170,11 @@ Rectangle {
                                     opacity: redoBtn.enabled ? 1.0 : 0.25
                                 }
                             }
-                            tooltipText: "Ponów"
                             onClicked: {
-                                if (historyIndex < history.length - 1) {
-                                    historyIndex++
-                                    applyState(history[historyIndex])
-                                }
+                                historyIndex++;
+                                applyState(history[historyIndex]);
                             }
+                            tooltipText: "Ponów (Ctrl+Y)"
                         }
                         CustomButton {
                             id: actionBtn
@@ -284,7 +312,12 @@ Rectangle {
                         }
                         onClicked: {
                             saveState();
-                            filteringFinished(currentMetadata);
+                            let finalImage = drawingCanvas.toDataURL("image/png");
+                            let finalData = {
+                                "image": finalImage,
+                                "metadata": clone(currentMetadata)
+                            };
+                            filteringFinished(finalData);
                             mainStack.pop();
                         }
                     }
@@ -330,6 +363,7 @@ Rectangle {
                             }
                             onImageLoaded: {
                                 var ctx = getContext("2d");
+                                ctx.imageSmoothingEnabled = false;
                                 ctx.drawImage(filterScreen.initialCanvasData, 0, 0, width, height);
                                 requestPaint();
                             }
@@ -440,7 +474,7 @@ Rectangle {
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
-                        tooltipText: "Oddal zdjęcie"
+                        tooltipText: "Oddal zdjęcie(Ctrl + -)"
                     }
                     Slider {
                         id: zoomSlider
@@ -477,7 +511,7 @@ Rectangle {
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
-                        tooltipText: "Przybliż zdjęcie"
+                        tooltipText: "Przybliż zdjęcie(Ctrl + +)"
                     }
                 }
                 CustomButton {
@@ -485,7 +519,7 @@ Rectangle {
                     icon.source: "../Resources/maximize.svg"
                     iconSize: 35
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                    tooltipText: "Dopasuj do ekranu"
+                    tooltipText: "Dopasuj do ekranu(Ctrl+F)"
                     onClicked: zoomToFit()
                 }
             }

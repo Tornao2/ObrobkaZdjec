@@ -62,6 +62,66 @@
             if (!fileName) return "";
             return fileName.indexOf('.') !== -1 ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
         }
+        focus: true
+        Keys.forwardTo: [manipulationKeyHandler]
+        Item {
+            id: manipulationKeyHandler
+            Keys.onPressed: (event) => {
+                let ctrl = event.modifiers & Qt.ControlModifier
+                if (ctrl) {
+                    if (event.key === Qt.Key_Z) {
+                        if (undoBtn.enabled) undoBtn.clicked()
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Y) {
+                        if (redoBtn.enabled) redoBtn.clicked()
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
+                        zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Minus) {
+                        zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_0) {
+                        zoomSlider.value = 1.0
+                        photo.x = (imageContainer.width - photo.width) / 2
+                        photo.y = (imageContainer.height - photo.height) / 2
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_F) {
+                        zoomToFit()
+                        event.accepted = true
+                    }
+                    return
+                }
+                switch (event.key) {
+                    case Qt.Key_R:
+                        rotationSlider.value += 90
+                        workingInfo.angle = rotationSlider.value
+                        saveState()
+                        event.accepted = true
+                        break
+                    case Qt.Key_L:
+                        rotationSlider.value -= 90
+                        workingInfo.angle = rotationSlider.value
+                        saveState()
+                        event.accepted = true
+                        break
+                    case Qt.Key_H:
+                        let dataH = JSON.parse(JSON.stringify(workingInfo))
+                        dataH.flipH = (workingInfo.flipH === 1 ? -1 : 1)
+                        workingInfo = dataH
+                        saveState()
+                        event.accepted = true
+                        break
+                    case Qt.Key_V:
+                        let dataV = JSON.parse(JSON.stringify(workingInfo))
+                        dataV.flipV = (workingInfo.flipV === 1 ? -1 : 1)
+                        workingInfo = dataV
+                        saveState()
+                        event.accepted = true
+                        break
+                }
+            }
+        }
         ColumnLayout {
             anchors.fill: parent
             spacing: 0
@@ -117,12 +177,10 @@
                                 iconSize: 35
                                 enabled: historyIndex > 0
                                 opacity: enabled ? 1.0 : 0.4
-                                tooltipText: "Cofnij"
+                                tooltipText: "Cofnij (Ctrl+Z)"
                                 onClicked: {
-                                    if (historyIndex > 0) {
-                                        historyIndex--
-                                        applyState(history[historyIndex])
-                                    }
+                                    historyIndex--;
+                                    applyState(history[historyIndex]);
                                 }
                             }
                             CustomButton {
@@ -147,13 +205,11 @@
                                         opacity: redoBtn.enabled ? 1.0 : 0.25
                                     }
                                 }
-                                tooltipText: "Ponów"
                                 onClicked: {
-                                    if (historyIndex < history.length - 1) {
-                                        historyIndex++
-                                        applyState(history[historyIndex])
-                                    }
+                                    historyIndex++;
+                                    applyState(history[historyIndex]);
                                 }
+                                tooltipText: "Ponów (Ctrl+Y)"
                             }
                             CustomButton {
                                 id: actionBtn
@@ -243,7 +299,7 @@
                             columnSpacing: 10
                             rowSpacing: 10
                             CustomButton {
-                                tooltipText: "Odbij horyzontalnie"
+                                tooltipText: "Odbij horyzontalnie(H)"
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 50; Layout.preferredWidth: 50
                                 icon.source: "../Resources/arrow-separate.svg"
@@ -255,7 +311,7 @@
                                 }
                             }
                             CustomButton {
-                                tooltipText: "Odbij wertykalnie"
+                                tooltipText: "Odbij wertykalnie(V)"
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 50; Layout.preferredWidth: 50
                                 icon.source: "../Resources/arrow-separate-vertical.svg"
@@ -267,7 +323,7 @@
                                 }
                             }
                             CustomButton {
-                                tooltipText: "Przekręć o 90 stopni w lewo"
+                                tooltipText: "Przekręć o 90 stopni w lewo(L)"
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 50; Layout.preferredWidth: 50
                                 icon.source: "../Resources/rotate-camera-left.svg"
@@ -278,7 +334,7 @@
                                 }
                             }
                             CustomButton {
-                                tooltipText: "Przekręć o 90 stopni w prawo"
+                                tooltipText: "Przekręć o 90 stopni w prawo(R)"
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 50; Layout.preferredWidth: 50
                                 icon.source: "../Resources/rotate-camera-right.svg"
@@ -308,7 +364,12 @@
                             }
                             onClicked: {
                                 saveState();
-                                manipulationFinished(workingInfo);
+                                let finalImage = drawingCanvas.toDataURL("image/png");
+                                let finalData = {
+                                    "image": finalImage,
+                                    "metadata": clone(workingInfo)
+                                };
+                                manipulationFinished(finalData);
                                 mainStack.pop();
                             }
                         }
@@ -390,6 +451,7 @@
                                 }
                                 onImageLoaded: {
                                     var ctx = getContext("2d");
+                                    ctx.imageSmoothingEnabled = false;
                                     ctx.drawImage(manipulationScreen.initialCanvasData, 0, 0, width, height);
                                     requestPaint();
                                 }
@@ -605,7 +667,7 @@
                             iconSize: 35
                             Layout.preferredWidth: 50; Layout.preferredHeight: 50
                             onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
-                            tooltipText: "Oddal zdjęcie"
+                            tooltipText: "Oddal zdjęcie(Ctrl + -)"
                         }
                         Slider {
                             id: zoomSlider
@@ -642,7 +704,7 @@
                             iconSize: 35
                             Layout.preferredWidth: 50; Layout.preferredHeight: 50
                             onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
-                            tooltipText: "Przybliż zdjęcie"
+                            tooltipText: "Przybliż zdjęcie(Ctrl + +)"
                         }
                     }
                     CustomButton {
@@ -650,7 +712,7 @@
                         icon.source: "../Resources/maximize.svg"
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        tooltipText: "Dopasuj do ekranu"
+                        tooltipText: "Dopasuj do ekranu(Ctrl+F)"
                         onClicked: zoomToFit()
                     }
                 }

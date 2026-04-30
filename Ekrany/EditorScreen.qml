@@ -86,6 +86,7 @@ Rectangle {
         originalMetadata = Object.assign({}, initialData)
         commitState()
         zoomToFit()
+        editorScreen.forceActiveFocus()
     }
     Timer {
         id: saveTimer
@@ -110,6 +111,66 @@ Rectangle {
             printSuccessMessage.open()
         }
     }
+    focus: true
+    Keys.forwardTo: [editorKeyHandler]
+    Item {
+        id: editorKeyHandler
+        Keys.onPressed: (event) => {
+            let ctrl = event.modifiers & Qt.ControlModifier
+            if (ctrl) {
+                if (event.key === Qt.Key_Z) {
+                    if (undoBtn.enabled) undoBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Y) {
+                    if (redoBtn.enabled) redoBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_S) {
+                    if (saveBtn.enabled) saveBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_P) {
+                    if (printBtn.enabled) printBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_C) {
+                    copyBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_I) {
+                    importBtn.clicked()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
+                    zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Minus) {
+                    zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_0) {
+                    photo.x = (imageContainer.width - photo.width) / 2
+                    photo.y = (imageContainer.height - photo.height) / 2
+                    zoomSlider.value = 1.0
+                    event.accepted = true
+                } else if (event.key === Qt.Key_F) {
+                    zoomToFit()
+                    event.accepted = true
+                }
+                return
+            }
+            switch (event.key) {
+                case Qt.Key_Delete:
+                    deleteBtn.clicked()
+                    event.accepted = true
+                    break
+                case Qt.Key_F1:  case Qt.Key_F2:  case Qt.Key_F3:  case Qt.Key_F4:
+                case Qt.Key_F5:  case Qt.Key_F6:  case Qt.Key_F7:  case Qt.Key_F8:
+                case Qt.Key_F9:  case Qt.Key_F10: case Qt.Key_F11: case Qt.Key_F12:
+                    let btnIndex = event.key - Qt.Key_F1;
+                    let btn = repeaterId.itemAt(btnIndex);
+                    if (btn) {
+                        triggerEditorAction(btn.assignedFunction);
+                    }
+                    event.accepted = true;
+                    break
+            }
+        }
+    }
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -131,7 +192,7 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     icon.source: "../Resources/trash.svg"
                     iconSize: 35
-                    tooltipText: "Usuń"
+                    tooltipText: "Usuń(Delete)"
                     onClicked: deleteConfirm.open()
                 }
                 CustomButton {
@@ -139,7 +200,7 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     icon.source: "../Resources/printer.svg"
                     iconSize: 35
-                    tooltipText: "Drukuj"
+                    tooltipText: "Drukuj(Ctrl+P)"
                     enabled: !isPrinting
                     opacity: isPrinting ? (printingAnim.running ? 1.0 : 0.6) : 1.0
                     SequentialAnimation on opacity {
@@ -149,7 +210,6 @@ Rectangle {
                         NumberAnimation { from: 1.0; to: 0.3; duration: 600 }
                         NumberAnimation { from: 0.3; to: 1.0; duration: 600 }
                     }
-
                     onClicked: {
                         isPrinting = true
                         printTimer.start()
@@ -160,7 +220,7 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     icon.source: "../Resources/copy.svg"
                     iconSize: 35
-                    tooltipText: "Kopiuj"
+                    tooltipText: "Kopiuj(Ctrl+C)"
                     onClicked: {
                         copySuccessDialog.open()
                     }
@@ -170,7 +230,7 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     icon.source: "../Resources/download.svg"
                     iconSize: 35
-                    tooltipText: "Importuj"
+                    tooltipText: "Importuj(Ctrl+I)"
                     onClicked: importFileDialog.open()
                 }
                 CustomButton {
@@ -178,7 +238,7 @@ Rectangle {
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
                     icon.source: "../Resources/floppy-disk.svg"
                     iconSize: 35
-                    tooltipText: "Zapisz"
+                    tooltipText: "Zapisz(Ctrl+S)"
                     enabled: !isSaving && !isPrinting
                         onClicked: {
                             isSaving = true
@@ -228,7 +288,7 @@ Rectangle {
                             iconSize: 35
                             enabled: historyIndex > 0
                             opacity: enabled ? 1.0 : 0.4
-                            tooltipText: "Cofnij"
+                            tooltipText: "Cofnij (Ctrl+Z)"
                             onClicked: {
                                 historyIndex--
                                 let state = JSON.parse(JSON.stringify(history[historyIndex]));
@@ -264,7 +324,7 @@ Rectangle {
                                     opacity: redoBtn.enabled ? 1.0 : 0.25
                                 }
                             }
-                            tooltipText: "Ponów"
+                            tooltipText: "Ponów (Ctrl+Y)"
                             onClicked: {
                                 historyIndex++
                                 let state = JSON.parse(JSON.stringify(history[historyIndex]));
@@ -317,6 +377,7 @@ Rectangle {
                         }
                     }
                     Repeater {
+                        id: repeaterId
                         model: 12
                         CornerButton {
                             settingsCategory: "slot" + (index + 1)
@@ -343,7 +404,7 @@ Rectangle {
                         scale: zoomSlider.value
                         transformOrigin: Item.Center
                         width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
-                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))                    
+                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
                         fillMode: Image.Stretch
                         asynchronous: false
                         cache: false
@@ -486,12 +547,12 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL();
+                        let snapshot = drawingCanvas.toDataURL("image/png");
                         let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": currentMetadata,
                                                            "initialCanvasData": snapshot })
-                        manipPage.manipulationFinished.connect(function(info) {
+                        manipPage.manipulationFinished.connect(function(info) {      
+                            currentMetadata = info.metadata
                             photo.autoTransform = true
-                            currentMetadata = info
                             photo.rotation = currentMetadata.angle
                             photo.sourceClipRect = Qt.rect(
                                 currentMetadata.crop.x,
@@ -499,7 +560,16 @@ Rectangle {
                                 currentMetadata.crop.w,
                                 currentMetadata.crop.h
                             )
+                            var ctx = drawingCanvas.getContext("2d");
+                            drawingCanvas.loadImage(info.image);
+                            drawingCanvas.imageLoaded.connect(function() {
+                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                                ctx.imageSmoothingEnabled = false;
+                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                                drawingCanvas.requestPaint();
+                            });
                             commitState()
+                            editorScreen.forceActiveFocus()
                         })
                     }
                 }
@@ -527,12 +597,21 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL();
+                        let snapshot = drawingCanvas.toDataURL("image/png");
                         let correctPage = mainStack.push("CorrectionScreen.qml", { "imageInfo": currentMetadata,
                                                              "initialCanvasData": snapshot })
                         correctPage.correctionFinished.connect(function(info) {
-                            currentMetadata = info
+                            currentMetadata = info.metadata
+                            var ctx = drawingCanvas.getContext("2d");
+                            drawingCanvas.loadImage(info.image);
+                            drawingCanvas.imageLoaded.connect(function() {
+                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                                ctx.imageSmoothingEnabled = false;
+                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                                drawingCanvas.requestPaint();
+                            });
                             commitState()
+                            editorScreen.forceActiveFocus()
                         })
                     }
                 }
@@ -560,12 +639,21 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL();
+                        let snapshot = drawingCanvas.toDataURL("image/png");
                         let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
                                                             "initialCanvasData": snapshot })
                         filterPage.filteringFinished.connect(function(info) {
-                            currentMetadata = info
+                            currentMetadata = info.metadata
+                            var ctx = drawingCanvas.getContext("2d");
+                            drawingCanvas.loadImage(info.image);
+                            drawingCanvas.imageLoaded.connect(function() {
+                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                                ctx.imageSmoothingEnabled = false;
+                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                                drawingCanvas.requestPaint();
+                            });
                             commitState()
+                            editorScreen.forceActiveFocus()
                         })
                     }
                 }
@@ -593,7 +681,7 @@ Rectangle {
                         }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL();
+                        let snapshot = drawingCanvas.toDataURL("image/png");
                         let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
                                                           "initialCanvasData": snapshot  })
                         drawPage.drawingFinished.connect(function(info) {
@@ -602,10 +690,12 @@ Rectangle {
                             drawingCanvas.loadImage(info.image);
                             drawingCanvas.imageLoaded.connect(function() {
                                 ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                                ctx.imageSmoothingEnabled = false;
                                 ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
                                 drawingCanvas.requestPaint();
                             });
                             commitState()
+                            editorScreen.forceActiveFocus()
                         })
                     }
                 }
@@ -628,6 +718,7 @@ Rectangle {
                             if (JSON.stringify(currentMetadata) !== JSON.stringify(updatedData)) {
                                 currentMetadata = updatedData
                                 commitState()
+                                editorScreen.forceActiveFocus()
                             }
                         })
                     }
@@ -687,7 +778,7 @@ Rectangle {
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
-                        tooltipText: "Oddal zdjęcie"
+                        tooltipText: "Oddal zdjęcie(Ctrl + -)"
                     }
                     Slider {
                         id: zoomSlider
@@ -723,7 +814,7 @@ Rectangle {
                         iconSize: 35
                         Layout.preferredWidth: 50; Layout.preferredHeight: 50
                         onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
-                        tooltipText: "Przybliż zdjęcie"
+                        tooltipText: "Przybliż zdjęcie(Ctrl + +)"
                     }
                 }
                 CustomButton {
@@ -731,7 +822,7 @@ Rectangle {
                     icon.source: "../Resources/maximize.svg"
                     iconSize: 35
                     Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                    tooltipText: "Dopasuj do ekranu"
+                    tooltipText: "Dopasuj do ekranu(Ctrl+F)"
                     onClicked: zoomToFit()
                 }
             }
@@ -1039,137 +1130,298 @@ Rectangle {
             currentMetadata = data;
             commitState()
         } else if (actionName === "Krawędzie") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Krawędzie"
             filterPage.filterStrength = currentMetadata["f_krawedzie"]
             filterPage.activeProperty = "f_krawedzie"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Szum") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Szum"
             filterPage.filterStrength = currentMetadata["f_szum"]
             filterPage.activeProperty = "f_szum"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Rozmycie kół") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Rozmycie kół"
             filterPage.filterStrength = currentMetadata["f_rozmycie_kol"]
             filterPage.activeProperty = "f_rozmycie_kol"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Pixel Art") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Pixel Art"
             filterPage.filterStrength = currentMetadata["f_pixel_art"]
             filterPage.activeProperty = "f_pixel_art"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Stary Film") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Stary Film"
             filterPage.filterStrength = currentMetadata["f_stary_film"]
             filterPage.activeProperty = "f_stary_film"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Negatyw") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Negatyw"
             filterPage.filterStrength = currentMetadata["f_negatyw"]
             filterPage.activeProperty = "f_negatyw"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Progowanie") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Progowanie"
             filterPage.filterStrength = currentMetadata["f_progowanie"]
             filterPage.activeProperty = "f_progowanie"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Sepia Retro") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Sepia Retro"
             filterPage.filterStrength = currentMetadata["f_sepia_retro"]
             filterPage.activeProperty = "f_sepia_retro"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Zimna Noc") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Zimna Noc"
             filterPage.filterStrength = currentMetadata["f_zimna_noc"]
             filterPage.activeProperty = "f_zimna_noc"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Ciepłe Lato") {
-            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
+                                                "initialCanvasData": snapshot })
             filterPage.selectedFilterName = "Ciepłe Lato"
             filterPage.filterStrength = currentMetadata["f_cieple_lato"]
             filterPage.activeProperty = "f_cieple_lato"
             filterPage.filteringFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Ołówek") {
-            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
+                                              "initialCanvasData": snapshot })
             drawPage.selectedTool = "Pencil"
             drawPage.drawingFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Pióro") {
-            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
+                                              "initialCanvasData": snapshot })
             drawPage.selectedTool = "Pen"
             drawPage.drawingFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Gumka") {
-            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
+                                              "initialCanvasData": snapshot })
             drawPage.selectedTool = "Eraser"
             drawPage.drawingFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Próbnik") {
-            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
+                                              "initialCanvasData": snapshot })
             drawPage.selectedTool = "Picker"
             drawPage.drawingFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Tekst") {
-            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
+                                              "initialCanvasData": snapshot })
             drawPage.selectedTool = "Text"
             drawPage.drawingFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         } else if (actionName === "Kolor") {
-            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata })
+            let snapshot = drawingCanvas.toDataURL("image/png");
+            let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
+                                              "initialCanvasData": snapshot })
             drawPage.selectedTool = "Color"
             drawPage.drawingFinished.connect(function(info) {
-                currentMetadata = info
+                currentMetadata = info.metadata
+                var ctx = drawingCanvas.getContext("2d");
+                drawingCanvas.loadImage(info.image);
+                drawingCanvas.imageLoaded.connect(function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    drawingCanvas.requestPaint();
+                });
                 commitState()
             })
         }
+        editorScreen.forceActiveFocus()
     }
 }
