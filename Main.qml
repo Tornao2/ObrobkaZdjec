@@ -3,17 +3,23 @@ import QtQuick.Window
 import QtQuick.Controls
 import "Ekrany"
 import "Kontrolki"
-
+import "./Style"
 ApplicationWindow {
     id: mainWindow
-    width: 1280
-    height: 960
+    width: 1152
+    height: 720
+    minimumWidth: 800
+    minimumHeight: 500
     visible: true
     title: "PhotoEditor"
-    x: (Screen.width - width) / 2
-    y: (Screen.height - height) / 2 - 20
+    Component.onCompleted: {
+        x = (Screen.width - width) / 2
+        y = (Screen.height - height) / 2 - 20
+    }
+    flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint
     StackView {
         id: mainStack
+        clip: true
         anchors.fill: parent
         initialItem: startComponent
         pushEnter: null
@@ -26,9 +32,14 @@ ApplicationWindow {
             id: startComponent
             StartScreen {
                 onFileSelected: function(filePath) {
-                    mainStack.push("Ekrany/EditorScreen.qml", { "imagePath": filePath })
+                    mainStack.push("Ekrany/EditorScreen.qml", { "imagePath": filePath})
                 }
             }
         }
+    }
+    ConfirmChangeDialog {
+        id: globalConfirmDialog
+        anchors.fill: parent
+        parent: mainWindow.contentItem
     }
 }

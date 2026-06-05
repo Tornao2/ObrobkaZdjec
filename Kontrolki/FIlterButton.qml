@@ -2,42 +2,41 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
-
+import "../Style"
 Button {
     id: control
     property string categoryTitle: "Kategoria"
     Layout.fillWidth: true
-    Layout.preferredHeight: 70
+    Layout.preferredHeight: Style.filterButtonHeight
     signal filterActivated(string filterName)
     contentItem: ColumnLayout {
-        spacing: 3
+        spacing: Style.filterButtonSpacing
         anchors.centerIn: parent
         Text {
             text: control.categoryTitle
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: 16
-            color: "black"
+            font.pixelSize: Style.fontBodySize
+            color: Style.baseTextColor
         }
     }
-
     background: Rectangle {
-        color: control.pressed ? "#66000000" : (control.hovered ? "#22000000" : "transparent")
-        Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: "black" }
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: "black" }
+        color: control.pressed ? Style.baseInteractionPressed : (control.hovered ? Style.filterButtonHoverColor : "transparent")
+        Rectangle { anchors.top: parent.top; width: parent.width; height: Style.filterButtonBorderHeight; color: Style.filterButtonBorderColor }
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Style.filterButtonBorderHeight; color: Style.filterButtonBorderColor }
     }
     onClicked: filterMenu.popup()
     Menu {
         id: filterMenu
         y: control.height
-        width: 200
+        width: Style.menuWidth
         padding: 0
         background: Rectangle {
-            implicitWidth: 320
-            color: "#8E9191"
-            radius: 4
-            border.color: "black"
+            implicitWidth: Style.filterMenuWidth
+            color: Style.dialogBackground
+            radius: Style.filterMenuRadius
+            border.color: Style.filterMenuBorderColor
         }
         Repeater {
             model: {
@@ -51,8 +50,8 @@ Button {
             MenuItem {
                 id: mItem
                 text: modelData
-                implicitWidth: 200
-                implicitHeight: 70
+                implicitWidth: Style.menuWidth
+                implicitHeight: Style.filterMenuItemHeight
                 arrow: null
                 indicator: null
                 onTriggered: {
@@ -74,25 +73,25 @@ Button {
                 }
                 contentItem: Text {
                     text: mItem.text
-                    font.pixelSize: 16
-                    font.weight: Font.Medium
-                    color: "black"
+                    font.pixelSize: Style.fontBodySize
+                    font.weight: Style.fontWeight
+                    color: Style.baseTextColor
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: mItem.pressed ? "#66000000" : (mItem.highlighted ? "#22000000" : "transparent")
+                    color: mItem.pressed ? Style.baseInteractionPressed : (mItem.highlighted ? Style.filterButtonHoverColor : "transparent")
                     Rectangle {
                         anchors.top: parent.top
                         width: parent.width
-                        height: 1
-                        color: "black"
+                        height: Style.filterButtonBorderHeight
+                        color: Style.filterButtonBorderColor
                     }
                     Rectangle {
                         anchors.bottom: parent.bottom
                         width: parent.width
-                        height: 1
-                        color: "black"
+                        height: Style.filterButtonBorderHeight
+                        color: Style.filterButtonBorderColor
                     }
                 }
             }

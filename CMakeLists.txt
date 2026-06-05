@@ -19,7 +19,6 @@ qt6_add_shaders(appKomunikacjaKomputerowa "my_shaders"
 )
 
 set(RES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources")
-
 file(GLOB_RECURSE IMAGE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "Resources/*.svg" "Resources/*.png")
 
 set_target_properties(appKomunikacjaKomputerowa PROPERTIES
@@ -30,23 +29,28 @@ qt_add_qml_module(appKomunikacjaKomputerowa
     URI KomunikacjaKomputerowa
     QML_FILES
         Main.qml
-        SOURCES
-        QML_FILES Ekrany/StartScreen.qml
-        QML_FILES Ekrany/EditorScreen.qml
-        QML_FILES Ekrany/MetadataScreen.qml
-        QML_FILES Ekrany/ManipulationScreen.qml
-        QML_FILES Ekrany/CorrectionScreen.qml
-        QML_FILES Ekrany/FilterScreen.qml
-        QML_FILES Ekrany/DrawingScreen.qml
+        Ekrany/StartScreen.qml
+        Ekrany/EditorScreen.qml
+        Ekrany/MetadataScreen.qml
+        Ekrany/ManipulationScreen.qml
+        Ekrany/CorrectionScreen.qml
+        Ekrany/FilterScreen.qml
+        Ekrany/DrawingScreen.qml
+        Style/Style.qml
+        Kontrolki/CornerButton.qml
+        Kontrolki/MetadataEditRow.qml
+        Kontrolki/ConfirmDialog.qml
+        Kontrolki/CorrectionSlider.qml
+        Kontrolki/FIlterButton.qml
+        Kontrolki/CustomButton.qml
+        Kontrolki/ConfirmChangeDialog.qml
     RESOURCES
         ${IMAGE_FILES}
-        QML_FILES Kontrolki/CornerButton.qml
-        QML_FILES Kontrolki/MetadataEditRow.qml
-        QML_FILES Kontrolki/ConfirmDialog.qml
-        QML_FILES Kontrolki/CorrectionSlider.qml
-        QML_FILES Kontrolki/FilterButton.qml
-        QML_FILES Kontrolki/CustomButton.qml
-        RESOURCES filters.frag
+        filters.frag
+        QML_FILES
+        RESOURCES Resources/icons-light/arrow-email-forward.svg Resources/icons-light/arrow-left.svg Resources/icons-light/arrow-right.svg Resources/icons-light/arrow-separate-vertical.svg Resources/icons-light/arrow-separate.svg Resources/icons-light/circle.svg Resources/icons-light/color-filter.svg Resources/icons-light/color-picker.svg Resources/icons-light/copy.svg Resources/icons-light/corner-bottom-left.svg Resources/icons-light/crop.svg Resources/icons-light/design-nib.svg Resources/icons-light/download.svg Resources/icons-light/drag-hand-gesture.svg Resources/icons-light/edit-pencil.svg Resources/icons-light/erase.svg Resources/icons-light/fast-arrow-left.svg Resources/icons-light/fast-arrow-right.svg Resources/icons-light/floppy-disk.svg Resources/icons-light/info-circle.svg Resources/icons-light/maximize.svg Resources/icons-light/open-in-window.svg Resources/icons-light/printer.svg Resources/icons-light/rotate-camera-left.svg Resources/icons-light/rotate-camera-right.svg Resources/icons-light/square3d-corner-to-corner.svg Resources/icons-light/sun-light.svg Resources/icons-light/text.svg Resources/icons-light/transition-right.svg Resources/icons-light/trash.svg Resources/icons-light/undo.svg Resources/icons-light/xmark.svg Resources/icons-light/zoom-in.svg Resources/icons-light/zoom-out.svg
+        RESOURCES Style/qmldir
+        RESOURCES Style/qmldir
 )
 
 target_precompile_headers(appKomunikacjaKomputerowa
@@ -54,13 +58,9 @@ target_precompile_headers(appKomunikacjaKomputerowa
         <QtCore/QDebug>
         <QtGui/QGuiApplication>
         <QtQml/QQmlApplicationEngine>
-)
+    )
 
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
 set_target_properties(appKomunikacjaKomputerowa PROPERTIES
-#    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.appKomunikacjaKomputerowa
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE

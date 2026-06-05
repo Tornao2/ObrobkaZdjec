@@ -1,10 +1,10 @@
 import QtQuick
 import QtQuick.Controls
-
+import "../Style"
 Button {
     id: control
     property string tooltipText: ""
-    property int iconSize: 32
+    property int iconSize: Style.iconButtonIconSize
     hoverEnabled: true
     padding: 0
     property bool isSelected: false
@@ -25,8 +25,8 @@ Button {
         implicitHeight: img.height
         Rectangle {
             id: colorFill
-            width: control.iconSize - 8
-            height: control.iconSize - 8
+            width: control.iconSize - Style.iconButtonColorFillPadding
+            height: control.iconSize - Style.iconButtonColorFillPadding
             anchors.centerIn: parent
             radius: width / 2
             color: control.previewColor
@@ -35,25 +35,26 @@ Button {
         Image {
             id: img
             anchors.centerIn: parent
-            width: control.iconSize
-            height: control.iconSize
-            source: control.icon.source
+            mipmap: true
+            width: Math.round(control.iconSize)
+            height: Math.round(control.iconSize)
+            sourceSize: Qt.size(width, height)
+            antialiasing: true
+            smooth: true
+            source: control.icon.source.toString().replace("../Resources/", Style.iconPath)
             fillMode: Image.PreserveAspectFit
-            opacity: !control.enabled ? 0.2 : (control.hovered ? 1.0 : 0.8)
-            scale: control.pressed ? 0.9 : 1.0
-            Behavior on scale { NumberAnimation { duration: 50 } }
+            opacity: !control.enabled ? Style.iconButtonDisabledOpacity : (control.hovered ? 1.0 : Style.iconButtonNormalOpacity)
+            scale: control.pressed ? Style.iconButtonPressedScale : 1.0
+            Behavior on scale { NumberAnimation { duration: Style.iconButtonAnimationDuration } }
         }
     }
-
     background: Rectangle {
-        implicitWidth: control.iconSize + 10
-        implicitHeight: control.iconSize + 10
-        color: control.isSelected ? "#66000000" :
-                       (control.pressed ? "#66000000" :
-                       (control.hovered ? "#33000000" : "transparent"))
-        radius: 8
+        implicitWidth: control.iconSize + Style.iconButtonBgPadding
+        implicitHeight: control.iconSize + Style.iconButtonBgPadding
+        color: control.isSelected ? Style.iconButtonSelectedColor : (control.pressed ? Style.iconButtonPressedColor : (control.hovered ? Style.iconButtonHoveredColor : "transparent"))
+        radius: Style.iconButtonRadius
     }
     ToolTip.visible: hovered && tooltipText !== ""
     ToolTip.text: tooltipText
-    ToolTip.delay: 500
+    ToolTip.delay: Style.iconButtonTooltipDelay
 }

@@ -3,32 +3,33 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Effects
 import "../Kontrolki"
-
+import "../Style"
 Rectangle {
     id: drawingScreen
-    color: "#8E9191"
+    color: Style.dialogBackground
     property var imageInfo: ({})
     property var currentMetadata: ({})
-    property var originalMetadata: currentMetadata
+    property var originalMetadata: ({})
     property bool panMode: false
     property string selectedTool: ""
     property var toolOptions: {
-                            "color" : "red",
-                            "pencilSize": 5,
-                            "pencilOpacity": 1,
-                            "penSize": 3,
-                            "penOpacity": 1,
-                            "penSmoothing": 0.3,
-                            "eraserSize": 5,
-                            "textSize": 32,
-                            "textOpacity": 1,
-                            "textSpacing": 0,
-                            "currentText": "Wpisz"
-                               }
+        "color" : "red",
+        "pencilSize": 5,
+        "pencilOpacity": 1,
+        "penSize": 3,
+        "penOpacity": 1,
+        "penSmoothing": 0.3,
+        "eraserSize": 5,
+        "textSize": 32,
+        "textOpacity": 1,
+        "textSpacing": 0,
+        "currentText": "Mój Tekst"
+    }
     signal drawingFinished(var finalInfo)
     property string initialCanvasData: ""
     property var history: []
     property int historyIndex: -1
+    property real fitScale: 1.0
     property bool blockHistory: false
     property bool finishedInit: false
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
@@ -66,6 +67,7 @@ Rectangle {
             else if (event.key === Qt.Key_4) pickerBtn.clicked()
             else if (event.key === Qt.Key_6) colorBtn.clicked()
             else if (event.modifiers & Qt.ControlModifier) {
+                refitSize()
                 if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
                     zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
                 } else if (event.key === Qt.Key_Minus) {
@@ -81,8 +83,8 @@ Rectangle {
         }
         Connections {
             target: textInputSource
-            function onAccepted() { mainRoot.forceActiveFocus() }
-            function onEditingFinished() { mainRoot.forceActiveFocus() }
+            function onAccepted() { drawingScreen.forceActiveFocus() }
+            function onEditingFinished() { drawingScreen.forceActiveFocus() }
         }
     }
     ColumnLayout {
@@ -91,12 +93,12 @@ Rectangle {
         Rectangle {
             id: topBar
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#8E9191"
+            Layout.preferredHeight: Style.manipulationTopBarHeight
+            color: Style.dialogBackground
             Text {
                 text: currentMetadata.name
                 anchors.centerIn: parent
-                font.pixelSize: 20; color: "black"
+                font.pixelSize: Style.fontTitleSize; color: Style.baseTextColor
             }
         }
         RowLayout {
@@ -105,695 +107,724 @@ Rectangle {
             spacing: 0
             Rectangle {
                 Layout.leftMargin: 0
-                Layout.preferredWidth: 150
+                Layout.preferredWidth: Style.manipulationSidePanelWidth
                 Layout.fillHeight: true
-                color: "#8E9191"
-                ColumnLayout {
+                color: Style.dialogBackground
+                ScrollView {
+                    id: sideScroll
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 12
-                    Button {
-                        id: resetBtn
-                        text: "Anuluj"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        contentItem: Text {
-                            text: resetBtn.text
-                            font.pixelSize: 20
-                            font.weight: Font.Medium
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: resetBtn.pressed ? "#A34141" : (resetBtn.hovered ? "#C45454" : "#AB4141")
-                            radius: 4
-                        }
-                        onClicked: {
-                            mainStack.pop()
-                        }
-                    }
-                    Grid {
-                        id: buttonsGrid
-                        columns: 2
-                        spacing: 10
-                        CustomButton {
-                            id: pencilBtn
-                            Layout.preferredWidth: 60; Layout.preferredHeight: 60
-                            iconSize: 50
-                            icon.source: "../Resources/edit-pencil.svg"
-                            tooltipText: "Ołówek(1)"
-                            isSelected: selectedTool == "Pencil"
-                            onClicked: {
-                                selectedTool = "Pencil"
-                                panMode = false
-                            }
-                        }
-                        CustomButton {
-                            id: textBtn
-                            Layout.preferredWidth: 60; Layout.preferredHeight: 60
-                            iconSize: 50
-                            icon.source: "../Resources/text.svg"
-                            tooltipText: "Tekst(2)"
-                            isSelected: selectedTool == "Text"
-                            onClicked: {
-                                selectedTool = "Text"
-                                panMode = false
-                            }
-                        }
-                        CustomButton {
-                            id: penBtn
-                            Layout.preferredWidth: 60; Layout.preferredHeight: 60
-                            iconSize: 50
-                            icon.source: "../Resources/design-nib.svg"
-                            tooltipText: "Pióro(3)"
-                            isSelected: selectedTool == "Pen"
-                            onClicked: {
-                                selectedTool = "Pen"
-                                panMode = false
-                            }
-                        }
-                        CustomButton {
-                            id: pickerBtn
-                            Layout.preferredWidth: 60; Layout.preferredHeight: 60
-                            iconSize: 50
-                            icon.source: "../Resources/color-picker.svg"
-                            tooltipText: "Wybierz kolor ze zdjęcia(4)"
-                            isSelected: selectedTool == "Picker"
-                            onClicked: {
-                                selectedTool = "Picker"
-                                panMode = false
-                            }
-                        }
-                        CustomButton {
-                            id: eraserBtn
-                            Layout.preferredWidth: 60; Layout.preferredHeight: 60
-                            iconSize: 50
-                            icon.source: "../Resources/erase.svg"
-                            tooltipText: "Wymaż(5)"
-                            isSelected: selectedTool == "Eraser"
-                            onClicked: {
-                                selectedTool = "Eraser"
-                                panMode = false
-                            }
-                        }
-                        CustomButton {
-                            id: colorBtn
-                            Layout.preferredWidth: 60; Layout.preferredHeight: 60
-                            iconSize: 50
-                            icon.source: "../Resources/circle.svg"
-                            tooltipText: "Wybierz kolor(6)"
-                            isSelected: selectedTool == "Color"
-                            previewColor: toolOptions.color || "red"
-                            onClicked: {
-                                selectedTool = "Color"
-                                panMode = false
-                            }
-                        }
-                    }
-                    Rectangle {
-                        id: divider
-                        width: 130
-                        height: 2
-                        color: "black"
-                    }
+                    clip: true
                     ColumnLayout {
-                        spacing: 10
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 130
-                        visible: selectedTool !== ""
-                        ColumnLayout {
-                            spacing: 15
+                        id: sideContent
+                        anchors.fill: parent
+                        anchors.leftMargin: Style.manipulationPanelMargin
+                        anchors.rightMargin: Style.manipulationPanelMargin
+                        spacing: Style.manipulationPanelSpacing
+                        Button {
+                            id: resetBtn
+                            text: "Anuluj"
                             Layout.fillWidth: true
-                            Layout.preferredWidth: 130
-                            visible: selectedTool == "Pencil"
-                            Text {
-                                text: "Ustawienia \nołówka"
-                                font.pixelSize: 22
-                                font.weight: Font.Medium
-                                font.bold: true
-                                color: "black"
-                                Layout.fillWidth: true
+                            Layout.preferredHeight: Style.customButtonHeight
+                            contentItem: Text {
+                                text: resetBtn.text
+                                font.pixelSize: Style.fontTitleSize
+                                font.weight: Style.fontWeight
                                 horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
-                            Text {
-                                text: "Grubość: " + pencilSizeSlider.value.toFixed(0)
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
+                            background: Rectangle {
+                                color: resetBtn.pressed ? Style.cancelActionBtnPressed : (resetBtn.hovered ? Style.cancelActionBtnHover : Style.cancelActionBtnNormal)
+                                radius: Style.dialogRadius
                             }
-                            Slider {
-                                id: pencilSizeSlider
-                                from: 1
-                                to: 50
-                                stepSize: 1
-                                value: toolOptions.pencilSize || 5
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: pencilSizeSlider.leftPadding
-                                    y: pencilSizeSlider.topPadding + pencilSizeSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: pencilSizeSlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
+                            onClicked: {
+                                var handler = function() {
+                                    globalConfirmDialog.confirmed.disconnect(handler)
+                                    globalConfirmDialog.cancelled.disconnect(cancelHandler)
+                                    mainStack.pop()
                                 }
-                                handle: Rectangle {
-                                    x: pencilSizeSlider.leftPadding + pencilSizeSlider.visualPosition * (pencilSizeSlider.availableWidth - width)
-                                    y: pencilSizeSlider.topPadding + pencilSizeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
+                                var cancelHandler = function() {
+                                    globalConfirmDialog.confirmed.disconnect(handler)
+                                    globalConfirmDialog.cancelled.disconnect(cancelHandler)
                                 }
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.pencilSize = value
-                                    toolOptions = options
+                                globalConfirmDialog.confirmed.connect(handler)
+                                globalConfirmDialog.cancelled.connect(cancelHandler)
+                                globalConfirmDialog.open()
+                            }
+                        }
+                        Grid {
+                            id: buttonsGrid
+                            columns: 2
+                            spacing: Style.drawingToolGridSpacing
+                            CustomButton {
+                                id: pencilBtn
+                                Layout.preferredWidth: Style.drawingToolBtnSize; Layout.preferredHeight: Style.drawingToolBtnSize
+                                iconSize: Style.drawingToolIconSize
+                                icon.source: "../Resources/edit-pencil.svg"
+                                tooltipText: "Ołówek(1)"
+                                isSelected: selectedTool == "Pencil"
+                                onClicked: {
+                                    selectedTool = "Pencil"
+                                    panMode = false
                                 }
                             }
-                            Text {
-                                text: "Krycie: " + (pencilOpacitySlider.value * 100).toFixed(0) + "%"
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
+                            CustomButton {
+                                id: textBtn
+                                Layout.preferredWidth: Style.drawingToolBtnSize; Layout.preferredHeight: Style.drawingToolBtnSize
+                                iconSize: Style.drawingToolIconSize
+                                icon.source: "../Resources/text.svg"
+                                tooltipText: "Tekst(2)"
+                                isSelected: selectedTool == "Text"
+                                onClicked: {
+                                    selectedTool = "Text"
+                                    panMode = false
+                                }
                             }
-                            Slider {
-                                id: pencilOpacitySlider
-                                from: 0
-                                to: 1
-                                value: toolOptions.pencilOpacity || 1.0
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: pencilOpacitySlider.leftPadding
-                                    y: pencilOpacitySlider.topPadding + pencilOpacitySlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: pencilOpacitySlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
+                            CustomButton {
+                                id: penBtn
+                                Layout.preferredWidth: Style.drawingToolBtnSize; Layout.preferredHeight: Style.drawingToolBtnSize
+                                iconSize: Style.drawingToolIconSize
+                                icon.source: "../Resources/design-nib.svg"
+                                tooltipText: "Pióro(3)"
+                                isSelected: selectedTool == "Pen"
+                                onClicked: {
+                                    selectedTool = "Pen"
+                                    panMode = false
                                 }
-                                handle: Rectangle {
-                                    x: pencilOpacitySlider.leftPadding + pencilOpacitySlider.visualPosition * (pencilOpacitySlider.availableWidth - width)
-                                    y: pencilOpacitySlider.topPadding + pencilOpacitySlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
+                            }
+                            CustomButton {
+                                id: pickerBtn
+                                Layout.preferredWidth: Style.drawingToolBtnSize; Layout.preferredHeight: Style.drawingToolBtnSize
+                                iconSize: Style.drawingToolIconSize
+                                icon.source: "../Resources/color-picker.svg"
+                                tooltipText: "Wybierz kolor ze zdjęcia(4)"
+                                isSelected: selectedTool == "Picker"
+                                onClicked: {
+                                    selectedTool = "Picker"
+                                    panMode = false
                                 }
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.pencilOpacity = value
-                                    toolOptions = options
+                            }
+                            CustomButton {
+                                id: eraserBtn
+                                Layout.preferredWidth: Style.drawingToolBtnSize; Layout.preferredHeight: Style.drawingToolBtnSize
+                                iconSize: Style.drawingToolIconSize
+                                icon.source: "../Resources/erase.svg"
+                                tooltipText: "Wymaż(5)"
+                                isSelected: selectedTool == "Eraser"
+                                onClicked: {
+                                    selectedTool = "Eraser"
+                                    panMode = false
+                                }
+                            }
+                            CustomButton {
+                                id: colorBtn
+                                Layout.preferredWidth: Style.drawingToolBtnSize; Layout.preferredHeight: Style.drawingToolBtnSize
+                                iconSize: Style.drawingToolIconSize
+                                icon.source: "../Resources/circle.svg"
+                                tooltipText: "Wybierz kolor(6)"
+                                isSelected: selectedTool == "Color"
+                                previewColor: toolOptions.color || "red"
+                                onClicked: {
+                                    selectedTool = "Color"
+                                    panMode = false
                                 }
                             }
                         }
-                        ColumnLayout {
-                            spacing: 15
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 130
-                            visible: selectedTool == "Pen"
-                            Text {
-                                text: "Ustawienia \npióra"
-                                font.pixelSize: 22
-                                font.bold: true
-                                font.weight: Font.Medium
-                                color: "black"
-                                Layout.fillWidth: true
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            Text {
-                                text: "Szerokość: " + penSizeSlider.value.toFixed(0)
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: penSizeSlider
-                                from: 1
-                                to: 50
-                                stepSize: 1
-                                value: toolOptions.penSize || 3
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: penSizeSlider.leftPadding
-                                    y: penSizeSlider.topPadding + penSizeSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: penSizeSlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
-                                }
-                                handle: Rectangle {
-                                    x: penSizeSlider.leftPadding + penSizeSlider.visualPosition * (penSizeSlider.availableWidth - width)
-                                    y: penSizeSlider.topPadding + penSizeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
-                                }
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.penSize = value
-                                    toolOptions = options
-                                }
-                            }
-                            Text {
-                                text: "Wygładzanie: " + (penSmoothingSlider.value * 100).toFixed(0) + "%"
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: penSmoothingSlider
-                                from: 0
-                                to: 0.99
-                                value: toolOptions.penSmoothing || 0.5
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: penSmoothingSlider.leftPadding
-                                    y: penSmoothingSlider.topPadding + penSmoothingSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: penSmoothingSlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
-                                }
-                                handle: Rectangle {
-                                    x: penSmoothingSlider.leftPadding + penSmoothingSlider.visualPosition * (penSmoothingSlider.availableWidth - width)
-                                    y: penSmoothingSlider.topPadding + penSmoothingSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
-                                }
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.penSmoothing = value
-                                    toolOptions = options
-                                }
-                            }
-                            Text {
-                                text: "Krycie: " + (penOpacitySlider.value * 100).toFixed(0) + "%"
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: penOpacitySlider
-                                from: 0
-                                to: 1
-                                value: toolOptions.penOpacity || 1.0
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: penOpacitySlider.leftPadding
-                                    y: penOpacitySlider.topPadding + penOpacitySlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: penOpacitySlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
-                                }
-                                handle: Rectangle {
-                                    x: penOpacitySlider.leftPadding + penOpacitySlider.visualPosition * (penOpacitySlider.availableWidth - width)
-                                    y: penOpacitySlider.topPadding + penOpacitySlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
-                                }
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.penOpacity = value
-                                    toolOptions = options
-                                }
-                            }
+                        Rectangle {
+                            id: divider
+                            width: Style.drawingDividerWidth
+                            height: Style.metadataSeparatorHeight
+                            color: Style.baseTextColor
                         }
                         ColumnLayout {
-                            spacing: 15
+                            spacing: Style.drawingSettingsSpacing
                             Layout.fillWidth: true
-                            Layout.preferredWidth: 130
-                            visible: selectedTool == "Eraser"
-                            Text {
-                                text: "Ustawienia \ngumki"
-                                font.pixelSize: 22
-                                font.weight: Font.Medium
-                                font.bold: true
-                                color: "black"
+                            Layout.preferredWidth: Style.drawingSettingsWidth
+                            visible: selectedTool !== ""
+                            ColumnLayout {
+                                spacing: Style.drawingSettingsGroupSpacing
                                 Layout.fillWidth: true
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            Text {
-                                text: "Grubość: " + eraserSizeSlider.value.toFixed(0)
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: eraserSizeSlider
-                                from: 1
-                                to: 50
-                                stepSize: 1
-                                value: toolOptions.eraserSize || 5
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: eraserSizeSlider.leftPadding
-                                    y: eraserSizeSlider.topPadding + eraserSizeSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: eraserSizeSlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
+                                Layout.preferredWidth: Style.drawingSettingsWidth
+                                visible: selectedTool == "Pencil"
+                                Text {
+                                    text: "Ustawienia \nołówka"
+                                    font.pixelSize: Style.drawingSectionTitleSize
+                                    font.weight: Style.fontWeight
+                                    font.bold: true
+                                    color: Style.baseTextColor
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
                                 }
-                                handle: Rectangle {
-                                    x: eraserSizeSlider.leftPadding + eraserSizeSlider.visualPosition * (eraserSizeSlider.availableWidth - width)
-                                    y: eraserSizeSlider.topPadding + eraserSizeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
+                                Text {
+                                    text: "Grubość: " + pencilSizeSlider.value.toFixed(0)
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
                                 }
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.eraserSize = value
-                                    toolOptions = options
+                                Slider {
+                                    id: pencilSizeSlider
+                                    from: 1
+                                    to: 50
+                                    stepSize: 1
+                                    value: toolOptions.pencilSize || 5
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: pencilSizeSlider.leftPadding
+                                        y: pencilSizeSlider.topPadding + pencilSizeSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: pencilSizeSlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: pencilSizeSlider.leftPadding + pencilSizeSlider.visualPosition * (pencilSizeSlider.availableWidth - width)
+                                        y: pencilSizeSlider.topPadding + pencilSizeSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.pencilSize = value
+                                        toolOptions = options
+                                    }
+                                }
+                                Text {
+                                    text: "Krycie: " + (pencilOpacitySlider.value * 100).toFixed(0) + "%"
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: pencilOpacitySlider
+                                    from: 0
+                                    to: 1
+                                    value: toolOptions.pencilOpacity || 1.0
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: pencilOpacitySlider.leftPadding
+                                        y: pencilOpacitySlider.topPadding + pencilOpacitySlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: pencilOpacitySlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: pencilOpacitySlider.leftPadding + pencilOpacitySlider.visualPosition * (pencilOpacitySlider.availableWidth - width)
+                                        y: pencilOpacitySlider.topPadding + pencilOpacitySlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.pencilOpacity = value
+                                        toolOptions = options
+                                    }
+                                }
+                            }
+                            ColumnLayout {
+                                spacing: Style.drawingSettingsGroupSpacing
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: Style.drawingSettingsWidth
+                                visible: selectedTool == "Pen"
+                                Text {
+                                    text: "Ustawienia \npióra"
+                                    font.pixelSize: Style.drawingSectionTitleSize
+                                    font.bold: true
+                                    font.weight: Style.fontWeight
+                                    color: Style.baseTextColor
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Text {
+                                    text: "Szerokość: " + penSizeSlider.value.toFixed(0)
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: penSizeSlider
+                                    from: 1
+                                    to: 50
+                                    stepSize: 1
+                                    value: toolOptions.penSize || 3
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: penSizeSlider.leftPadding
+                                        y: penSizeSlider.topPadding + penSizeSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: penSizeSlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: penSizeSlider.leftPadding + penSizeSlider.visualPosition * (penSizeSlider.availableWidth - width)
+                                        y: penSizeSlider.topPadding + penSizeSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.penSize = value
+                                        toolOptions = options
+                                    }
+                                }
+                                Text {
+                                    text: "Wygładzanie: " + (penSmoothingSlider.value * 100).toFixed(0) + "%"
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: penSmoothingSlider
+                                    from: 0
+                                    to: 0.99
+                                    value: toolOptions.penSmoothing || 0.5
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: penSmoothingSlider.leftPadding
+                                        y: penSmoothingSlider.topPadding + penSmoothingSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: penSmoothingSlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: penSmoothingSlider.leftPadding + penSmoothingSlider.visualPosition * (penSmoothingSlider.availableWidth - width)
+                                        y: penSmoothingSlider.topPadding + penSmoothingSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.penSmoothing = value
+                                        toolOptions = options
+                                    }
+                                }
+                                Text {
+                                    text: "Krycie: " + (penOpacitySlider.value * 100).toFixed(0) + "%"
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: penOpacitySlider
+                                    from: 0
+                                    to: 1
+                                    value: toolOptions.penOpacity || 1.0
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: penOpacitySlider.leftPadding
+                                        y: penOpacitySlider.topPadding + penOpacitySlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: penOpacitySlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: penOpacitySlider.leftPadding + penOpacitySlider.visualPosition * (penOpacitySlider.availableWidth - width)
+                                        y: penOpacitySlider.topPadding + penOpacitySlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.penOpacity = value
+                                        toolOptions = options
+                                    }
+                                }
+                            }
+                            ColumnLayout {
+                                spacing: Style.drawingSettingsGroupSpacing
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: Style.drawingSettingsWidth
+                                visible: selectedTool == "Eraser"
+                                Text {
+                                    text: "Ustawienia \ngumki"
+                                    font.pixelSize: Style.drawingSectionTitleSize
+                                    font.weight: Style.fontWeight
+                                    font.bold: true
+                                    color: Style.baseTextColor
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Text {
+                                    text: "Grubość: " + eraserSizeSlider.value.toFixed(0)
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: eraserSizeSlider
+                                    from: 1
+                                    to: 50
+                                    stepSize: 1
+                                    value: toolOptions.eraserSize || 5
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: eraserSizeSlider.leftPadding
+                                        y: eraserSizeSlider.topPadding + eraserSizeSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: eraserSizeSlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: eraserSizeSlider.leftPadding + eraserSizeSlider.visualPosition * (eraserSizeSlider.availableWidth - width)
+                                        y: eraserSizeSlider.topPadding + eraserSizeSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.eraserSize = value
+                                        toolOptions = options
+                                    }
+                                }
+                            }
+                            ColumnLayout {
+                                spacing: Style.drawingSettingsGroupSpacing
+                                id: colorSettingsContainer
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: Style.drawingSettingsWidth
+                                visible: selectedTool == "Color"
+                                property bool _isUpdating: false
+                                Connections {
+                                    target: drawingScreen
+                                    function onToolOptionsChanged() {
+                                        if (colorSettingsContainer._isUpdating) return;
+                                        let c = Qt.color(toolOptions.color)
+                                        let newR = Math.round(c.r * 255);
+                                        let newG = Math.round(c.g * 255);
+                                        let newB = Math.round(c.b * 255);
+                                        colorSettingsContainer._isUpdating = true;
+                                        rSlider.value = newR;
+                                        gSlider.value = newG;
+                                        bSlider.value = newB;
+                                        colorSettingsContainer._isUpdating = false;
+                                    }
+                                }
+                                Text {
+                                    text: "Kolor RGB"
+                                    font.pixelSize: Style.drawingSectionTitleSize
+                                    font.weight: Style.fontWeight
+                                    font.bold: true
+                                    color: Style.baseTextColor
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Slider {
+                                    id: rSlider
+                                    from: 0; to: 255; stepSize: 1
+                                    value: 255
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.drawingColorSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    onMoved: colorSettingsContainer.updateColor()
+                                    background: Rectangle {
+                                        x: rSlider.leftPadding; y: rSlider.topPadding + rSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight; width: rSlider.availableWidth; height: implicitHeight; radius: Style.sliderBgRadius; color: Style.drawingRgbRedBg
+                                    }
+                                    handle: Rectangle {
+                                        x: rSlider.leftPadding + rSlider.visualPosition * (rSlider.availableWidth - width)
+                                        y: rSlider.topPadding + rSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth; implicitHeight: Style.sliderHandleImplicitHeight; radius: Style.sliderHandleRadius; color: Style.sliderHandleColor; border.color: Style.sliderHandleBorderColor; border.width: Style.sliderHandleBorderWidth
+                                    }
+                                }
+                                Text {
+                                    text: "R: " + rSlider.value
+                                    font.pixelSize: Style.inputFieldFontSize; color: Style.baseTextColor; Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: gSlider
+                                    from: 0; to: 255; stepSize: 1
+                                    value: 0
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.drawingColorSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    onMoved: colorSettingsContainer.updateColor()
+                                    background: Rectangle {
+                                        x: gSlider.leftPadding; y: gSlider.topPadding + gSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight; width: gSlider.availableWidth; height: implicitHeight; radius: Style.sliderBgRadius; color: Style.drawingRgbGreenBg
+                                    }
+                                    handle: Rectangle {
+                                        x: gSlider.leftPadding + gSlider.visualPosition * (gSlider.availableWidth - width)
+                                        y: gSlider.topPadding + gSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth; implicitHeight: Style.sliderHandleImplicitHeight; radius: Style.sliderHandleRadius; color: Style.sliderHandleColor; border.color: Style.sliderHandleBorderColor; border.width: Style.sliderHandleBorderWidth
+                                    }
+                                }
+                                Text {
+                                    text: "G: " + gSlider.value
+                                    font.pixelSize: Style.inputFieldFontSize; color: Style.baseTextColor; Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: bSlider
+                                    from: 0; to: 255; stepSize: 1
+                                    value: 0
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.drawingColorSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    onMoved: colorSettingsContainer.updateColor()
+                                    background: Rectangle {
+                                        x: bSlider.leftPadding; y: bSlider.topPadding + bSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight; width: bSlider.availableWidth; height: implicitHeight; radius: Style.sliderBgRadius; color: Style.drawingRgbBlueBg
+                                    }
+                                    handle: Rectangle {
+                                        x: bSlider.leftPadding + bSlider.visualPosition * (bSlider.availableWidth - width)
+                                        y: bSlider.topPadding + bSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth; implicitHeight: Style.sliderHandleImplicitHeight; radius: Style.sliderHandleRadius; color: Style.sliderHandleColor; border.color: Style.sliderHandleBorderColor; border.width: Style.sliderHandleBorderWidth
+                                    }
+                                }
+                                Text {
+                                    text: "B: " + bSlider.value
+                                    font.pixelSize: Style.inputFieldFontSize; color: Style.baseTextColor; Layout.alignment: Qt.AlignCenter
+                                }
+                                function updateColor() {
+                                    if (_isUpdating) return;
+                                    let r = rSlider.value / 255
+                                    let g = gSlider.value / 255
+                                    let b = bSlider.value / 255
+                                    let colorObj = Qt.rgba(r, g, b, 1)
+                                    let newHex = Qt.color(colorObj).toString().substring(0, 7)
+                                    _isUpdating = true;
+                                    let temp = Object.assign({}, toolOptions);
+                                    temp.color = newHex;
+                                    toolOptions = temp;
+                                    _isUpdating = false;
+                                }
+                            }
+                            ColumnLayout {
+                                spacing: Style.drawingSettingsGroupSpacing
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: Style.drawingSettingsWidth
+                                visible: selectedTool == "Text"
+                                Text {
+                                    text: "Ustawienia \ntekstu"
+                                    font.pixelSize: Style.drawingSectionTitleSize
+                                    font.weight: Style.fontWeight
+                                    color: Style.baseTextColor
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Text {
+                                    text: "Rozmiar: " + textSizeSlider.value.toFixed(0)
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: textSizeSlider
+                                    from: 8; to: 150; stepSize: 1
+                                    value: toolOptions.textSize || 32
+                                    Layout.preferredWidth: Style.drawingSettingsWidth; Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    background: Rectangle {
+                                        x: textSpacingSlider.leftPadding
+                                        y: textSpacingSlider.topPadding + textSpacingSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: textSpacingSlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: textSizeSlider.leftPadding + textSizeSlider.visualPosition * (textSizeSlider.availableWidth - width)
+                                        y: textSizeSlider.topPadding + textSizeSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth; implicitHeight: Style.sliderHandleImplicitHeight; radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor; border.color: Style.sliderHandleBorderColor; border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.textSize = value
+                                        toolOptions = options
+                                    }
+                                }
+                                Text {
+                                    text: "Odstępy: " + textSpacingSlider.value.toFixed(1)
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: textSpacingSlider
+                                    from: -5
+                                    to: 20
+                                    stepSize: 0.5
+                                    value: toolOptions.textSpacing || 0
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: textSpacingSlider.leftPadding
+                                        y: textSpacingSlider.topPadding + textSpacingSlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: textSpacingSlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: textSpacingSlider.leftPadding + textSpacingSlider.visualPosition * (textSpacingSlider.availableWidth - width)
+                                        y: textSpacingSlider.topPadding + textSpacingSlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.textSpacing = value
+                                        toolOptions = options
+                                    }
+                                }
+                                Text {
+                                    text: "Krycie: " + (textOpacitySlider.value * 100).toFixed(0) + "%"
+                                    font.pixelSize: Style.drawingSettingLabelSize
+                                    color: Style.baseTextColor
+                                    Layout.alignment: Qt.AlignCenter
+                                }
+                                Slider {
+                                    id: textOpacitySlider
+                                    from: 0
+                                    to: 1
+                                    value: toolOptions.textOpacity || 1.0
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    background: Rectangle {
+                                        x: textOpacitySlider.leftPadding
+                                        y: textOpacitySlider.topPadding + textOpacitySlider.availableHeight / 2 - height / 2
+                                        implicitHeight: Style.sliderBgImplicitHeight
+                                        width: textOpacitySlider.availableWidth
+                                        height: implicitHeight
+                                        radius: Style.sliderBgRadius
+                                        color: Style.sliderBgColor
+                                    }
+                                    handle: Rectangle {
+                                        x: textOpacitySlider.leftPadding + textOpacitySlider.visualPosition * (textOpacitySlider.availableWidth - width)
+                                        y: textOpacitySlider.topPadding + textOpacitySlider.availableHeight / 2 - height / 2
+                                        implicitWidth: Style.sliderHandleImplicitWidth
+                                        implicitHeight: Style.sliderHandleImplicitHeight
+                                        radius: Style.sliderHandleRadius
+                                        color: Style.sliderHandleColor
+                                        border.color: Style.sliderHandleBorderColor
+                                        border.width: Style.sliderHandleBorderWidth
+                                    }
+                                    onMoved: {
+                                        let options = toolOptions
+                                        options.textOpacity = value
+                                        toolOptions = options
+                                    }
+                                }
+                                TextField {
+                                    id: textInputSource
+                                    placeholderText: "Wpisz tekst..."
+                                    text: "Mój Tekst"
+                                    Layout.preferredWidth: Style.drawingSettingsWidth
+                                    Layout.preferredHeight: Style.inputFieldHeight
+                                    Layout.alignment: Qt.AlignCenter
+                                    color: Style.baseTextColor
+                                    font.pixelSize: Style.inputFieldFontSize
+                                    font.weight: Font.Normal
+                                    selectionColor: Style.drawingTextSelectionColor
+                                    selectedTextColor: Style.baseTextColor
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    leftPadding: Style.metadataDescriptionPaddingLeft
+                                    rightPadding: Style.metadataDescriptionPaddingLeft
+                                    topPadding: 0
+                                    bottomPadding: 0
+                                    background: Item {
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: "transparent"
+                                        }
+                                        Rectangle {
+                                            anchors.bottom: parent.bottom
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            height: textInputSource.activeFocus ? Style.editorProgressBarHeight : Style.metadataSeparatorHeight
+                                            color: textInputSource.activeFocus ? Style.secondaryTextColor : Style.disabledTextColor
+                                        }
+                                    }
+                                    placeholderTextColor: Style.metadataSeparatorColor
+                                    onTextChanged: {
+                                        let options = toolOptions
+                                        options.currentText = text
+                                        toolOptions = options
+                                    }
+                                    onAccepted: {
+                                        focus = false
+                                    }
                                 }
                             }
                         }
-                        ColumnLayout {
-                            spacing: 15
-                            id: colorSettingsContainer
+                        Item { Layout.fillHeight: true }
+                        Button {
+                            id: confirmBtn
+                            text: "Zatwierdź"
                             Layout.fillWidth: true
-                            Layout.preferredWidth: 130
-                            visible: selectedTool == "Color"
-                            property bool _isUpdating: false
-                            Connections {
-                                target: drawingScreen
-                                function onToolOptionsChanged() {
-                                    if (colorSettingsContainer._isUpdating) return;
-                                    let c = Qt.color(toolOptions.color)
-                                    let newR = Math.round(c.r * 255);
-                                    let newG = Math.round(c.g * 255);
-                                    let newB = Math.round(c.b * 255);
-                                    colorSettingsContainer._isUpdating = true;
-                                    rSlider.value = newR;
-                                    gSlider.value = newG;
-                                    bSlider.value = newB;
-                                    colorSettingsContainer._isUpdating = false;
-                                }
-                            }
-                            Text {
-                                text: "Kolor RGB"
-                                font.pixelSize: 22
-                                font.weight: Font.Medium
-                                font.bold: true
-                                color: "black"
-                                Layout.fillWidth: true
+                            Layout.preferredHeight: Style.customButtonHeight
+                            Layout.bottomMargin: Style.manipulationPanelMargin
+                            contentItem: Text {
+                                text: confirmBtn.text
+                                font.pixelSize: Style.fontBodySize
                                 horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
-                            Slider {
-                                id: rSlider
-                                from: 0; to: 255; stepSize: 1
-                                value: 255
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 20
-                                Layout.alignment: Qt.AlignCenter
-                                onMoved: colorSettingsContainer.updateColor()
-                                background: Rectangle {
-                                    x: rSlider.leftPadding; y: rSlider.topPadding + rSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8; width: rSlider.availableWidth; height: implicitHeight; radius: 3; color: "#ffcccc"
-                                }
-                                handle: Rectangle {
-                                    x: rSlider.leftPadding + rSlider.visualPosition * (rSlider.availableWidth - width)
-                                    y: rSlider.topPadding + rSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22; implicitHeight: 22; radius: 11; color: "white"; border.color: "#333"; border.width: 1
-                                }
+                            background: Rectangle {
+                                color: confirmBtn.pressed ? Style.manipulationConfirmBtnPressed : (confirmBtn.hovered ? Style.manipulationConfirmBtnHover : Style.manipulationConfirmBtnNormal)
+                                radius: Style.manipulationConfirmBtnRadius
                             }
-                            Text {
-                                text: "R: " + rSlider.value
-                                font.pixelSize: 16; color: "black"; Layout.alignment: Qt.AlignCenter
+                            onClicked: {
+                                drawingScreen.finishDrawing()
                             }
-                            Slider {
-                                id: gSlider
-                                from: 0; to: 255; stepSize: 1
-                                value: 0
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 20
-                                Layout.alignment: Qt.AlignCenter
-                                onMoved: colorSettingsContainer.updateColor()
-                                background: Rectangle {
-                                    x: gSlider.leftPadding; y: gSlider.topPadding + gSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8; width: gSlider.availableWidth; height: implicitHeight; radius: 3; color: "#ccffcc"
-                                }
-                                handle: Rectangle {
-                                    x: gSlider.leftPadding + gSlider.visualPosition * (gSlider.availableWidth - width)
-                                    y: gSlider.topPadding + gSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22; implicitHeight: 22; radius: 11; color: "white"; border.color: "#333"; border.width: 1
-                                }
-                            }
-                            Text {
-                                text: "G: " + gSlider.value
-                                font.pixelSize: 16; color: "black"; Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: bSlider
-                                from: 0; to: 255; stepSize: 1
-                                value: 0
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 20
-                                Layout.alignment: Qt.AlignCenter
-                                onMoved: colorSettingsContainer.updateColor()
-                                background: Rectangle {
-                                    x: bSlider.leftPadding; y: bSlider.topPadding + bSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8; width: bSlider.availableWidth; height: implicitHeight; radius: 3; color: "#ccccff"
-                                }
-                                handle: Rectangle {
-                                    x: bSlider.leftPadding + bSlider.visualPosition * (bSlider.availableWidth - width)
-                                    y: bSlider.topPadding + bSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22; implicitHeight: 22; radius: 11; color: "white"; border.color: "#333"; border.width: 1
-                                }
-                            }
-                            Text {
-                                text: "B: " + bSlider.value
-                                font.pixelSize: 16; color: "black"; Layout.alignment: Qt.AlignCenter
-                            }
-                            function updateColor() {
-                                if (_isUpdating) return;
-                                let r = rSlider.value / 255
-                                let g = gSlider.value / 255
-                                let b = bSlider.value / 255
-                                let colorObj = Qt.rgba(r, g, b, 1)
-                                let newHex = Qt.color(colorObj).toString().substring(0, 7)
-                                _isUpdating = true;
-                                let temp = Object.assign({}, toolOptions);
-                                temp.color = newHex;
-                                toolOptions = temp;
-                                _isUpdating = false;
-                            }
-                        }
-                        ColumnLayout {
-                            spacing: 15
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 130
-                            visible: selectedTool == "Text"
-                            Text {
-                                text: "Ustawienia \ntekstu"
-                                font.pixelSize: 22
-                                font.weight: Font.Medium
-                                color: "black"
-                                Layout.fillWidth: true
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            Text {
-                                text: "Rozmiar: " + textSizeSlider.value.toFixed(0)
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: textSizeSlider
-                                from: 8; to: 150; stepSize: 1
-                                value: toolOptions.textSize || 32
-                                Layout.preferredWidth: 130; Layout.preferredHeight: 30
-                                background: Rectangle {
-                                    implicitHeight: 8; radius: 3; color: "#555555"
-                                    width: textSizeSlider.availableWidth
-                                    y: textSizeSlider.topPadding + textSizeSlider.availableHeight / 2 - height / 2
-                                }
-                                handle: Rectangle {
-                                    x: textSizeSlider.leftPadding + textSizeSlider.visualPosition * (textSizeSlider.availableWidth - width)
-                                    y: textSizeSlider.topPadding + textSizeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22; implicitHeight: 22; radius: 11
-                                    color: "white"; border.color: "#333"; border.width: 1
-                                }
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.textSize = value
-                                    toolOptions = options
-                                }
-                            }
-                            Text {
-                                text: "Odstępy: " + textSpacingSlider.value.toFixed(1)
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: textSpacingSlider
-                                from: -5
-                                to: 20
-                                stepSize: 0.5
-                                value: toolOptions.textSpacing || 0
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: textSpacingSlider.leftPadding
-                                    y: textSpacingSlider.topPadding + textSpacingSlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: textSpacingSlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
-                                }
-
-                                handle: Rectangle {
-                                    x: textSpacingSlider.leftPadding + textSpacingSlider.visualPosition * (textSpacingSlider.availableWidth - width)
-                                    y: textSpacingSlider.topPadding + textSpacingSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
-                                }
-
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.textSpacing = value
-                                    toolOptions = options
-                                }
-                            }
-                            Text {
-                                text: "Krycie: " + (textOpacitySlider.value * 100).toFixed(0) + "%"
-                                font.pixelSize: 15
-                                color: "black"
-                                Layout.alignment: Qt.AlignCenter
-                            }
-                            Slider {
-                                id: textOpacitySlider
-                                from: 0
-                                to: 1
-                                value: toolOptions.textOpacity || 1.0
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 30
-                                Layout.alignment: Qt.AlignCenter
-                                background: Rectangle {
-                                    x: textOpacitySlider.leftPadding
-                                    y: textOpacitySlider.topPadding + textOpacitySlider.availableHeight / 2 - height / 2
-                                    implicitHeight: 8
-                                    width: textOpacitySlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: "#555555"
-                                }
-
-                                handle: Rectangle {
-                                    x: textOpacitySlider.leftPadding + textOpacitySlider.visualPosition * (textOpacitySlider.availableWidth - width)
-                                    y: textOpacitySlider.topPadding + textOpacitySlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 22
-                                    implicitHeight: 22
-                                    radius: 11
-                                    color: "white"
-                                    border.color: "#333"
-                                    border.width: 1
-                                }
-
-                                onMoved: {
-                                    let options = toolOptions
-                                    options.textOpacity = value
-                                    toolOptions = options
-                                }
-                            }
-                            TextField {
-                                id: textInputSource
-                                placeholderText: "Wpisz tekst..."
-                                text: "Mój Tekst"
-                                Layout.preferredWidth: 130
-                                Layout.preferredHeight: 35
-                                Layout.alignment: Qt.AlignCenter
-                                color: "white"
-                                font.pixelSize: 16
-                                selectionColor: "#777777"
-                                selectedTextColor: "white"
-                                verticalAlignment: TextInput.AlignVCenter
-                                leftPadding: 10
-                                rightPadding: 10
-                                background: Rectangle {
-                                    color: "#555555"
-                                    radius: 5
-                                }
-                                placeholderTextColor: "#aaaaaa"
-                                onTextChanged: {
-                                    let options = toolOptions
-                                    options.currentText = text
-                                    toolOptions = options
-                                }
-                                onAccepted: {
-                                    focus = false
-                                }
-                            }
-                        }
-                    }
-                    Item { Layout.fillHeight: true }
-                    Button {
-                        id: confirmBtn
-                        text: "Zatwierdź"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        Layout.bottomMargin: 10
-                        contentItem: Text {
-                            text: confirmBtn.text
-                            font.pixelSize: 18
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: confirmBtn.pressed ? "#217dbb" : (confirmBtn.hovered ? "#3498db" : "#2980b9")
-                            radius: 4
-                        }
-                        onClicked: {
-                            drawingScreen.finishDrawing()
                         }
                     }
                 }
             }
             Rectangle {
-                color: "#C0C3C4"
+                color: Style.metadataRightPanelBg
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.margins: 0
@@ -801,17 +832,18 @@ Rectangle {
                     id: imageContainer
                     anchors.fill: parent
                     clip: true
+                    property real dragOffsetX: 0
+                    property real dragOffsetY: 0
                     Image {
                         id: photo
                         source: imageInfo.path
-                        x: (parent.width - width) / 2
-                        y: (parent.height - height) / 2
-                        scale: zoomSlider.value
+                        scale: fitScale * zoomSlider.value
                         transformOrigin: Item.Center
-                        width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
-                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
-                        fillMode: Image.Stretch
+                        fillMode: Image.PreserveAspectFit
                         rotation: currentMetadata.angle
+                        anchors.centerIn: parent
+                        anchors.horizontalCenterOffset: imageContainer.dragOffsetX
+                        anchors.verticalCenterOffset: imageContainer.dragOffsetY
                         transform: Scale {
                             origin.x: photo.width / 2
                             origin.y: photo.height / 2
@@ -836,20 +868,26 @@ Rectangle {
                             property real currentX: 0
                             property real currentY: 0
                             property bool contextReady: false
-                            onAvailableChanged: {
-                                if (available && drawingScreen.initialCanvasData !== "") {
-                                    loadImage(drawingScreen.initialCanvasData);
+                            property bool wasImageDrawn: false
+                            Image {
+                                id: hiddenCanvasLoader
+                                source: (drawingScreen.initialCanvasData && drawingScreen.initialCanvasData !== "data:," && drawingScreen.initialCanvasData !== "")
+                                            ? drawingScreen.initialCanvasData
+                                            : ""
+                                visible: false
+                                onStatusChanged: {
+                                    if (status === Image.Ready && !drawingCanvas.wasImageDrawn) {
+                                        drawingCanvas.requestPaint();
+                                    }
                                 }
-                            }
-                            onImageLoaded: {
-                                var ctx = getContext("2d");
-                                ctx.imageSmoothingEnabled = false;
-                                ctx.drawImage(drawingScreen.initialCanvasData, 0, 0, width, height);
-                                requestPaint();
                             }
                             onPaint: {
                                 if(!finishedInit) return
                                 var ctx = getContext("2d")
+                                if (hiddenCanvasLoader.status === Image.Ready && !wasImageDrawn) {
+                                    ctx.drawImage(hiddenCanvasLoader, 0, 0, width, height);
+                                    wasImageDrawn = true;
+                                }
                                 if (selectedTool !== "Text" && lastX === 0 && lastY === 0) {
                                     lastX = currentX
                                     lastY = currentY
@@ -902,27 +940,23 @@ Rectangle {
                                 }
                             }
                             function pickColor(mouseX, mouseY) {
-                                photo.grabToImage(function(result) {
-                                    if (!result) return;
-                                    let px = Math.floor(mouseX);
-                                    let py = Math.floor(mouseY);
-                                    px = Math.max(0, Math.min(px, photo.width));
-                                    py = Math.max(0, Math.min(py, photo.height));
-                                    var ctx = pickerHelper.getContext("2d");
-                                    ctx.clearRect(0, 0, 1, 1);
-                                    ctx.imageSmoothingEnabled = false;
-                                    ctx.drawImage(result.url, px, py, 1, 1, 0, 0, 1, 1);
-                                    var pixel = ctx.getImageData(0, 0, 1, 1).data;
-                                    if (pixel[3] > 0) {
-                                        let pickedHex = "#" +
-                                            pixel[0].toString(16).padStart(2, '0') +
-                                            pixel[1].toString(16).padStart(2, '0') +
-                                            pixel[2].toString(16).padStart(2, '0');
-                                        let updatedOptions = Object.assign({}, toolOptions);
-                                        updatedOptions.color = pickedHex;
-                                        toolOptions = updatedOptions;
-                                    }
-                                });
+                                if (originalImageLoader.status !== Image.Ready) return;
+                                let scaleX = originalImageLoader.sourceSize.width / originalImageLoader.paintedWidth;
+                                let scaleY = originalImageLoader.sourceSize.height / originalImageLoader.paintedHeight;
+                                let srcX = Math.max(0, Math.min(Math.floor(mouseX * scaleX), originalImageLoader.sourceSize.width - 1));
+                                let srcY = Math.max(0, Math.min(Math.floor(mouseY * scaleY), originalImageLoader.sourceSize.height - 1));
+                                let ctx = pickerHelper.getContext("2d");
+                                pickerHelper.width = 1;
+                                pickerHelper.height = 1;
+                                ctx.clearRect(0, 0, 1, 1);
+                                ctx.drawImage(originalImageLoader, srcX, srcY, 1, 1, 0, 0, 1, 1);
+                                let pixel = ctx.getImageData(0, 0, 1, 1).data;
+                                if (pixel[3] > 0) {
+                                    let hex = "#" + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, '0')).join('');
+                                    let opts = Object.assign({}, toolOptions);
+                                    opts.color = hex;
+                                    toolOptions = opts;
+                                }
                             }
                         }
                         layer.enabled: true
@@ -973,12 +1007,8 @@ Rectangle {
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         cursorShape: (panMode || pressedButtons & Qt.MiddleButton)
                                      ? Qt.ClosedHandCursor : Qt.ArrowCursor
-                        drag.target: (panMode || pressedButtons & Qt.MiddleButton) ? photo : null
-                        drag.axis: Drag.XAndYAxis
-                        drag.minimumX: -photo.width / 2
-                        drag.maximumX: imageContainer.width - photo.width / 2
-                        drag.minimumY: -photo.height / 2
-                        drag.maximumY: imageContainer.height - photo.height / 2
+                        property int lastX: 0
+                        property int lastY: 0
                         onPressed: (mouse) => {
                            var coords = dragArea.mapToItem(photo, mouse.x, mouse.y)
                            drawingCanvas.currentX = coords.x
@@ -996,10 +1026,22 @@ Rectangle {
                                drawingCanvas.lastY = coords.y
                            }
                            if (mouse.button === Qt.MiddleButton) {
+                               dragArea.lastX = mouse.x
+                               dragArea.lastY = mouse.y
                                mouse.accepted = true
                            }
+                           dragArea.lastX = mouse.x
+                            dragArea.lastY = mouse.y
                         }
                         onPositionChanged: (mouse) => {
+                           if (pressed && (pressedButtons & Qt.MiddleButton || panMode)) {
+                               let deltaX = mouse.x - dragArea.lastX
+                               let deltaY = mouse.y - dragArea.lastY
+                               imageContainer.dragOffsetX += deltaX
+                               imageContainer.dragOffsetY += deltaY
+                               dragArea.lastX = mouse.x
+                               dragArea.lastY = mouse.y
+                           }
                             if (!panMode && (mouse.buttons & Qt.LeftButton)) {
                                 if (selectedTool === "Text") return
                                 var coords = dragArea.mapToItem(photo, mouse.x, mouse.y)
@@ -1013,6 +1055,7 @@ Rectangle {
                             drawingCanvas.lastY = 0;
                         }
                         onWheel: (wheel) => {
+                            refitSize()
                             if (wheel.angleDelta.y > 0) {
                                 zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.1)
                             } else {
@@ -1020,9 +1063,7 @@ Rectangle {
                             }
                         }
                         onDoubleClicked: {
-                            photo.x = (parent.width - photo.width) / 2
-                            photo.y = (parent.height - photo.height) / 2
-                            zoomSlider.value = 1.0
+                            zoomToFit()
                         }
                     }
                 }
@@ -1030,25 +1071,25 @@ Rectangle {
         }
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 60
-            color: "#8E9191"
+            Layout.preferredHeight: Style.manipulationBottomBarHeight1
+            color: Style.dialogBackground
         }
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#A0A3A3"
+            Layout.preferredHeight: Style.manipulationBottomBarHeight2
+            color: Style.manipulationBottomBarColor2
             RowLayout {
                 anchors.fill: parent
                 Item { Layout.fillWidth: true }
                 CustomButton {
                     id: handBtn
                     icon.source: "../Resources/drag-hand-gesture.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    iconSize: Style.metadataActionIconSize
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     tooltipText: "Przesuń obraz"
                     background: Rectangle {
-                        color: panMode ? "#6E7171" : (handBtn.hovered ? "#9EAAAA" : "transparent")
-                        radius: 4
+                        color: panMode ? Style.manipulationPanBtnActiveColor : (handBtn.hovered ? Style.manipulationPanBtnHoverColor : "transparent")
+                        radius: Style.dialogRadius
                     }
                     onClicked: {
                         panMode = !panMode
@@ -1056,12 +1097,15 @@ Rectangle {
                     }
                 }
                 RowLayout {
-                    spacing: 5
+                    spacing: Style.manipulationZoomBtnSpacing
                     CustomButton {
                         icon.source: "../Resources/zoom-out.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                        iconSize: Style.metadataActionIconSize
+                        Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                        onClicked: {
+                            refitSize()
+                            zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                        }
                         tooltipText: "Oddal zdjęcie(Ctrl + -)"
                     }
                     Slider {
@@ -1069,61 +1113,79 @@ Rectangle {
                         from: 0.1
                         to: 5.0
                         value: 1.0
-                        Layout.preferredWidth: 250
+                        Layout.preferredWidth: Style.manipulationZoomSliderWidth
                         ToolTip.visible: pressed
                         ToolTip.delay: 0
                         ToolTip.text: Math.round(value * 100) + "%"
+                        onPressedChanged: {
+                            refitSize()
+                        }
                         background: Rectangle {
                             x: zoomSlider.leftPadding
                             y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 120
-                            implicitHeight: 6
+                            implicitWidth: Style.manipulationZoomSliderBgWidth
+                            implicitHeight: Style.manipulationZoomSliderBgHeight
                             width: zoomSlider.availableWidth
                             height: implicitHeight
-                            radius: 2
-                            color: "#555"
+                            radius: Style.manipulationZoomSliderBgRadius
+                            color: Style.manipulationZoomSliderBgColor
                         }
                         handle: Rectangle {
                             x: zoomSlider.leftPadding + zoomSlider.visualPosition * (zoomSlider.availableWidth - width)
                             y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 16
-                            implicitHeight: 16
-                            radius: 8
-                            color: "white"
-                            border.color: "#333"
+                            implicitWidth: Style.manipulationZoomSliderHandleSize
+                            implicitHeight: Style.manipulationZoomSliderHandleSize
+                            radius: Style.manipulationZoomSliderHandleRadius
+                            color: Style.manipulationZoomSliderHandleColor
+                            border.color: Style.manipulationZoomSliderHandleBorderColor
                         }
                     }
                     CustomButton {
                         icon.source: "../Resources/zoom-in.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                        iconSize: Style.metadataActionIconSize
+                        Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                        onClicked: {
+                            refitSize()
+                            zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                        }
                         tooltipText: "Przybliż zdjęcie(Ctrl + +)"
                     }
                 }
                 CustomButton {
                     id: fullscreenBtn
                     icon.source: "../Resources/maximize.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    iconSize: Style.metadataActionIconSize
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     tooltipText: "Dopasuj do ekranu(Ctrl+F)"
                     onClicked: zoomToFit()
                 }
             }
         }
     }
+    Image {
+        id: originalImageLoader
+        source: imageInfo.path
+        visible: false
+        asynchronous: true
+    }
     function zoomToFit() {
         if (photo.status !== Image.Ready) return
+        refitSize()
+        zoomSlider.value = 1.0
+        photo.x = (imageContainer.width - photo.width) / 2
+        photo.y = (imageContainer.height - photo.height) / 2
+        imageContainer.dragOffsetX = 0
+        imageContainer.dragOffsetY = 0
+    }
+    function refitSize() {
         let containerW = imageContainer.width
         let containerH = imageContainer.height
         let finalScale = 1.0
         if (photo.width > 0 && photo.height > 0) {
-            let currentRatioX = containerW /(photo.width)
-            let currentRatioY = containerH /(photo.height)
+            let currentRatioX = containerW / photo.width
+            let currentRatioY = containerH / photo.height
             finalScale = Math.min(currentRatioX, currentRatioY)
         }
-        zoomSlider.value = finalScale
-        photo.x = (imageContainer.width - photo.width) / 2
-        photo.y = (imageContainer.height - photo.height) / 2
+        fitScale = finalScale
     }
 }

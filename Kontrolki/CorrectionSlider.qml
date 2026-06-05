@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
+import "../Style"
 Item {
     id: root
     implicitHeight: 105
@@ -16,9 +16,9 @@ Item {
         anchors.fill: parent
         Text {
             text: root.title
-            font.pixelSize: 18
-            font.weight: Font.Medium
-            color: "black"
+            font.pixelSize: Style.sliderTitleFontSize
+            font.weight: Style.sliderTitleFontWeight
+            color: Style.sliderTitleColor
             Layout.alignment: Qt.AlignCenter
         }
         Slider {
@@ -29,22 +29,22 @@ Item {
             background: Rectangle {
                 x: slider.leftPadding
                 y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                implicitWidth: 200
-                implicitHeight: 8
+                implicitWidth: Style.sliderBgImplicitWidth
+                implicitHeight: Style.sliderBgImplicitHeight
                 width: slider.availableWidth
                 height: implicitHeight
-                radius: 3
-                color: "#555555"
+                radius: Style.sliderBgRadius
+                color: Style.sliderBgColor
             }
             handle: Rectangle {
                 x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
                 y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                implicitWidth: 22
-                implicitHeight: 22
-                radius: 9
-                color: "white"
-                border.color: "#333"
-                border.width: 1
+                implicitWidth: Style.sliderHandleImplicitWidth
+                implicitHeight: Style.sliderHandleImplicitHeight
+                radius: Style.sliderHandleRadius
+                color: Style.sliderHandleColor
+                border.color: Style.sliderHandleBorderColor
+                border.width: Style.sliderHandleBorderWidth
             }
             onPressedChanged: {
                 if (!pressed) {
@@ -56,20 +56,20 @@ Item {
             text: "↺"
             Layout.alignment: Qt.AlignCenter
             flat: true
-            Layout.preferredWidth: 115
-            Layout.preferredHeight: 16
+            Layout.preferredWidth: Style.sliderResetBtnWidth
+            Layout.preferredHeight: Style.sliderResetBtnHeight
             contentItem: Text {
                 text: parent.text
-                font.pixelSize: 10
+                font.pixelSize: Style.sliderResetBtnFontSize
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
-                color: "black"
+                color: Style.sliderResetBtnTextColor
                 horizontalAlignment: Text.AlignHCenter
             }
             background: Rectangle {
-                implicitHeight: 3
-                color: "#D65151"
-                radius: 5
+                implicitHeight: Style.sliderResetBtnBgHeight
+                color: Style.sliderResetBtnBgColor
+                radius: Style.sliderResetBtnBgRadius
             }
             onClicked: {
                 slider.value = 0
@@ -79,9 +79,9 @@ Item {
         }
         Text {
             text: slider.value.toFixed(0)
-            font.pixelSize: 20
-            font.weight: Font.Medium
-            color: "#333"
+            font.pixelSize: Style.sliderValueFontSize
+            font.weight: Style.sliderValueFontWeight
+            color: Style.sliderValueColor
             Layout.alignment: Qt.AlignCenter
         }
     }

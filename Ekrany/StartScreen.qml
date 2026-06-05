@@ -4,13 +4,12 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import "../Kontrolki"
 import QtCore
-
+import "../Style"
 Rectangle {
     id: startScreen
-    color: "#8E9191"
-    readonly property int iconColumnWidth: 100
+    color: Style.dialogBackground
+    readonly property int iconColumnWidth: Style.startScreenIconColumnWidth
     signal fileSelected(string filePath)
-
     function usunZHistorii(sciezka) {
         let sciezkaStr = String(sciezka);
         for (let i = 0; i < historyModel.count; i++) {
@@ -26,7 +25,6 @@ Rectangle {
         category: "History"
         property var lastFiles: []
     }
-
     function zapiszUstawienia() {
         let paths = [];
         for (let i = 0; i < historyModel.count; i++) {
@@ -34,7 +32,6 @@ Rectangle {
         }
         appSettings.lastFiles = paths;
     }
-
     function dodajDoHistorii(sciezka) {
         let sciezkaStr = String(sciezka);
         let nazwa = sciezkaStr.split("/").pop();
@@ -47,7 +44,6 @@ Rectangle {
         });
         zapiszUstawienia();
     }
-
     Component.onCompleted: {
         let savedPaths = appSettings.lastFiles;
         if (savedPaths) {
@@ -58,7 +54,6 @@ Rectangle {
             }
         }
     }
-
     FileDialog {
         id: fileOpenDialog
         title: "Wybierz zdjęcie do obróbki"
@@ -69,27 +64,26 @@ Rectangle {
             startScreen.fileSelected(path)
         }
     }
-
     ColumnLayout {
         anchors.top: parent.top
-        anchors.topMargin: 120
+        anchors.topMargin: Style.startScreenTopMargin
         anchors.horizontalCenter: parent.horizontalCenter
         width: Math.min(parent.width * 0.8, 800)
         height: parent.height * 0.85
-        spacing: 10
+        spacing: Style.startScreenLayoutSpacing
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 120
+            Layout.preferredHeight: Style.startScreenOpenAreaHeight
             Rectangle {
                 anchors.fill: parent
-                anchors.margins: -10
-                radius: 10
-                color: openAreaMA.containsPress ? "#7A7D7D" : (openAreaMA.containsMouse ? "#6F7373" : "transparent")
+                anchors.margins: Style.startScreenOpenAreaBgMargin
+                radius: Style.startScreenOpenAreaRadius
+                color: openAreaMA.containsPress ? Style.dialogHeaderBackground : (openAreaMA.containsMouse ? Style.startScreenOpenAreaHover : "transparent")
             }
             RowLayout {
                 id: openRow
                 anchors.fill: parent
-                spacing: 10
+                spacing: Style.startScreenLayoutSpacing
                 Item {
                     Layout.preferredWidth: startScreen.iconColumnWidth
                     Layout.fillHeight: true
@@ -97,20 +91,19 @@ Rectangle {
                         id: openButton
                         anchors.centerIn: parent
                         icon.source: "../Resources/open-in-window.svg"
-                        iconSize: 80
+                        iconSize: Style.startScreenOpenIconSize
                         background: Item {}
                     }
                 }
                 Text {
                     text: "Otwórz zdjęcie"
-                    font.pixelSize: 45
-                    font.weight: Font.DemiBold
+                    font.pixelSize: Style.startScreenOpenTextSize
+                    font.weight: Style.startScreenOpenTextWeight
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignLeft
-                    color: "#333"
+                    color: Style.tertiaryTextColor
                 }
             }
-
             MouseArea {
                 id: openAreaMA
                 anchors.fill: parent
@@ -120,54 +113,57 @@ Rectangle {
             }
         }
         RowLayout {
-            spacing: 10
+            spacing: Style.startScreenLayoutSpacing
             Layout.alignment: Qt.AlignLeft
             Item {
                 Layout.preferredWidth: startScreen.iconColumnWidth
-                Layout.preferredHeight: 64
+                Layout.preferredHeight: Style.startScreenRecentIconSize
                 Image {
-                    source: "../Resources/arrow-email-forward.svg"
-                    width: 60; height: 60
+                    source: Style.currentTheme === "dark" ? "../Resources/icons-light/arrow-email-forward.svg" :  "../Resources/arrow-email-forward.svg"
+                    width: Style.startScreenRecentIconSize; height: Style.startScreenRecentIconSize
                     anchors.centerIn: parent
-                    opacity: 0.5
+                    opacity: Style.startScreenRecentIconOpacity
                     fillMode: Image.PreserveAspectFit
+                    mipmap: true
+                    sourceSize: Qt.size(width, height)
+                    antialiasing: true
+                    smooth: true
                 }
             }
             Text {
                 text: "Ostatnie pliki"
-                font.pixelSize: 32
-                font.weight: Font.DemiBold
-                color: "#333"
+                font.pixelSize: Style.startScreenRecentTextSize
+                font.weight: Style.startScreenRecentTextWeight
+                color: Style.tertiaryTextColor
             }
         }
-
         ListView {
             id: historyList
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            rightMargin: 20
+            Layout.rightMargin: Style.startScreenLayoutSpacing
             model: ListModel {
                 id: historyModel
             }
             delegate: Rectangle {
                 id: delegateRoot
-                height: 70
+                height: Style.startScreenHistoryItemHeight
                 width: historyList.width - historyList.rightMargin
-                color: itemMA.containsMouse ? "#6F7373" : "transparent"
-                radius: 5
+                color: itemMA.containsMouse ? Style.startScreenOpenAreaHover : "transparent"
+                radius: Style.startScreenHistoryItemRadius
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: 0
-                    anchors.rightMargin: 15
-                    spacing: 15
+                    anchors.rightMargin: Style.startScreenHistoryItemSpacing
+                    spacing: Style.startScreenHistoryItemSpacing
                     Item {
                         Layout.preferredWidth: startScreen.iconColumnWidth
                         Layout.fillHeight: true
                         Rectangle {
-                            width: 50; height: 50
+                            width: Style.startScreenThumbSize; height: Style.startScreenThumbSize
                             anchors.centerIn: parent
-                            radius: 6; clip: true; color: "#ccc"
+                            radius: Style.startScreenThumbRadius; clip: true; color: Style.startScreenThumbBgColor
                             Image {
                                 anchors.fill: parent
                                 source: model.fullPath
@@ -184,24 +180,24 @@ Rectangle {
                     }
                     Text {
                         text: model.fileName
-                        font.pixelSize: 20
+                        font.pixelSize: Style.fontTitleSize
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: "#222"
+                        color: Style.secondaryTextColor
                         verticalAlignment: Text.AlignVCenter
                     }
                     CustomButton {
                         id: deleteButton
-                        Layout.preferredWidth: 35
-                        Layout.preferredHeight: 35
+                        Layout.preferredWidth: Style.startScreenDeleteButtonSize
+                        Layout.preferredHeight: Style.startScreenDeleteButtonSize
                         icon.source: "../Resources/xmark.svg"
                         onClicked: {
                             historyModel.remove(index);
                             startScreen.zapiszUstawienia();
                         }
                         background: Rectangle {
-                            color: deleteButton.hovered ? "#555" : "transparent"
-                            radius: 5
+                            color: deleteButton.hovered ? Style.startScreenDeleteButtonHoverColor : "transparent"
+                            radius: Style.startScreenDeleteButtonRadius
                         }
                     }
                 }
@@ -217,14 +213,14 @@ Rectangle {
             }
             ScrollBar.vertical: ScrollBar {
                 id: scrollBar
-                policy: historyList.contentHeight > historyList.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                policy: ScrollBar.AsNeeded
+                visible: historyList.contentHeight > historyList.height
                 contentItem: Rectangle {
-                    implicitWidth: 8
-                    radius: 4
-                    color: scrollBar.pressed ? "#222" : "#555"
+                    implicitWidth: Style.scrollBarWidth
+                    radius: Style.scrollBarRadius
+                    color: scrollBar.pressed ? Style.secondaryTextColor : Style.disabledTextColor
                 }
             }
         }
     }
 }
-

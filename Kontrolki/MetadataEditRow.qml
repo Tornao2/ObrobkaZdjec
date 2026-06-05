@@ -1,67 +1,71 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-
+import "../Style"
 RowLayout {
     id: root
-    signal edited(string newValue)
+    spacing: Style.inputRowSpacing
     property string label: ""
     property string value: ""
-    property string inputMask: ""
-    property string trailingIcon: "../Resources/edit-pencil.svg"
-    property var validator: null
     property bool isReadOnly: false
-    spacing: 10
-    Layout.fillWidth: true
-    opacity: isReadOnly ? 0.7 : 1.0
-
+    property string trailingIcon: ""
+    property string inputMask: ""
+    property var validator: null
+    signal edited(string newValue)
     Text {
-        text: label
-        Layout.preferredWidth: 150
-        Layout.minimumWidth: 150
-        Layout.maximumWidth: 150
-        font.pixelSize: 16
-        font.bold: true
-        color: "#222"
+        text: root.label
+        font.pixelSize: Style.inputLabelFontSize
+        font.bold: Style.inputLabelFontBold
+        color: Style.inputLabelColor
+        Layout.preferredWidth: Style.inputLabelWidth
+        Layout.minimumWidth: Style.inputLabelWidth
+        Layout.maximumWidth: Style.inputLabelWidth
         horizontalAlignment: Text.AlignRight
+        verticalAlignment: Text.AlignVCenter
     }
-
-    TextField {
-        id: editField
-        text: value
+    Item {
         Layout.fillWidth: true
-        font.pixelSize: 16
-        selectByMouse: true
-        activeFocusOnTab: !root.isReadOnly
-        onEditingFinished: {
-            if (value !== text) {
-                root.edited(text)
+        Layout.rightMargin: Style.inputFieldRightMargin
+        Layout.preferredHeight: Style.inputFieldHeight
+        Rectangle {
+            anchors.fill: parent
+            radius: Style.inputFieldRadius
+            color: root.isReadOnly ? Style.inputFieldBgReadOnly : Style.inputFieldBgNormal
+            border.color: inputField.activeFocus ? Style.inputFieldFocusBorderColor : "transparent"
+            border.width: Style.inputFieldBorderWidth
+            TextField {
+                id: inputField
+                anchors.fill: parent
+                text: root.value
+                readOnly: root.isReadOnly
+                color: root.isReadOnly ? Style.inputFieldTextReadOnly : Style.inputFieldTextNormal
+                background: null
+                font.pixelSize: Style.inputFieldFontSize
+                leftPadding: Style.inputFieldPaddingLeft
+                rightPadding: root.trailingIcon !== "" ? Style.inputFieldPaddingRightIcon : Style.inputFieldPaddingRight
+                verticalAlignment: TextInput.AlignVCenter
+                inputMask: root.inputMask
+                validator: root.validator
+                onEditingFinished: root.edited(text)
+                Keys.onPressed: (event) => {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        nextItemInFocusChain().forceActiveFocus();
+                        event.accepted = true;
+                    }
+                }
             }
-        }
-        color: activeFocus ? "black" : "#333"
-        inputMask: parent.inputMask
-        validator: parent.validator
-        readOnly: isReadOnly
-        Layout.rightMargin: 50
-        rightPadding: (!isReadOnly && trailingIcon !== "") ? 35 : 10
-        background: Rectangle {
-            color: (editField.activeFocus && !isReadOnly) ? "white" : "transparent"
-            border.color: !editField.acceptableInput ? "red" : (editField.activeFocus ? "#3498db" : "transparent")
-            border.width: 1
-            radius: 4
-        }
-
-        Image {
-            source: root.trailingIcon
-            visible: !root.isReadOnly && root.trailingIcon !== ""
-            width: 18
-            height: 18
-            anchors.right: parent.right
-            anchors.rightMargin: 10
-            anchors.verticalCenter: parent.verticalCenter
-            opacity: editField.activeFocus ? 0.8 : 0.4
-            fillMode: Image.PreserveAspectFit
-            smooth: true
+            Image {
+                source: Style.currentTheme === "dark" ? "../Resources/icons-light/edit-pencil.svg" :  "../Resources/edit-pencil.svg"
+                visible: root.trailingIcon !== "" && !root.isReadOnly
+                width: Style.inputIconSize
+                height: Style.inputIconSize
+                anchors.right: parent.right
+                anchors.rightMargin: Style.inputIconRightMargin
+                anchors.verticalCenter: parent.verticalCenter
+                opacity: inputField.activeFocus ? Style.inputIconFocusOpacity : Style.inputIconNormalOpacity
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+            }
         }
     }
 }

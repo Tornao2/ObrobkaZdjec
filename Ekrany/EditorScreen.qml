@@ -5,10 +5,10 @@ import "../Kontrolki"
 import QtQuick.Dialogs
 import QtCore
 import QtQuick.Effects
-
+import "../Style"
 Rectangle {
     id: editorScreen
-    color: "#8E9191"
+    color: Style.dialogBackground
     property bool isPrinting: false
     property bool isSaving: false
     signal changesSaved(var finalState)
@@ -21,11 +21,11 @@ Rectangle {
     property var currentMetadata: ({})
     property var originalMetadata: ({})
     property var tempMetadata: ({})
+    property real fitScale: 1.0
     function initializeMetadata(data) {
         currentMetadata = data
         originalMetadata = Object.assign({}, data)
     }
-
     function commitState() {
         let state = {
             "metadata": Object.assign({}, currentMetadata)
@@ -116,6 +116,7 @@ Rectangle {
     Item {
         id: editorKeyHandler
         Keys.onPressed: (event) => {
+            refitSize()
             let ctrl = event.modifiers & Qt.ControlModifier
             if (ctrl) {
                 if (event.key === Qt.Key_Z) {
@@ -177,38 +178,38 @@ Rectangle {
         Rectangle {
             id: topBar
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#8E9191"
+            Layout.preferredHeight: Style.manipulationTopBarHeight
+            color: Style.dialogBackground
             Text {
                 text: currentMetadata.name || ""
                 anchors.centerIn: parent
-                font.pixelSize: 20; color: "black"
+                font.pixelSize: Style.fontTitleSize; color: Style.baseTextColor
             }
             RowLayout {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 CustomButton {
                     id: deleteBtn
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     icon.source: "../Resources/trash.svg"
-                    iconSize: 35
+                    iconSize: Style.metadataActionIconSize
                     tooltipText: "Usuń(Delete)"
                     onClicked: deleteConfirm.open()
                 }
                 CustomButton {
                     id: printBtn
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     icon.source: "../Resources/printer.svg"
-                    iconSize: 35
+                    iconSize: Style.metadataActionIconSize
                     tooltipText: "Drukuj(Ctrl+P)"
                     enabled: !isPrinting
-                    opacity: isPrinting ? (printingAnim.running ? 1.0 : 0.6) : 1.0
+                    opacity: isPrinting ? (printingAnim.running ? 1.0 : Style.editorPrintingBtnDisabledOpacity) : 1.0
                     SequentialAnimation on opacity {
                         id: printingAnim
                         running: editorScreen.isPrinting
                         loops: Animation.Infinite
-                        NumberAnimation { from: 1.0; to: 0.3; duration: 600 }
-                        NumberAnimation { from: 0.3; to: 1.0; duration: 600 }
+                        NumberAnimation { from: 1.0; to: Style.editorPrintingAnimOpacityMin; duration: 600 }
+                        NumberAnimation { from: Style.editorPrintingAnimOpacityMin; to: 1.0; duration: 600 }
                     }
                     onClicked: {
                         isPrinting = true
@@ -217,9 +218,9 @@ Rectangle {
                 }
                 CustomButton {
                     id: copyBtn
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     icon.source: "../Resources/copy.svg"
-                    iconSize: 35
+                    iconSize: Style.metadataActionIconSize
                     tooltipText: "Kopiuj(Ctrl+C)"
                     onClicked: {
                         copySuccessDialog.open()
@@ -227,17 +228,17 @@ Rectangle {
                 }
                 CustomButton {
                     id: importBtn
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     icon.source: "../Resources/download.svg"
-                    iconSize: 35
+                    iconSize: Style.metadataActionIconSize
                     tooltipText: "Importuj(Ctrl+I)"
                     onClicked: importFileDialog.open()
                 }
                 CustomButton {
                     id: saveBtn
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     icon.source: "../Resources/floppy-disk.svg"
-                    iconSize: 35
+                    iconSize: Style.metadataActionIconSize
                     tooltipText: "Zapisz(Ctrl+S)"
                     enabled: !isSaving && !isPrinting
                         onClicked: {
@@ -250,44 +251,45 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumHeight: 200
             spacing: 0
             Rectangle {
-                Layout.preferredWidth: 150
+                Layout.preferredWidth: Style.manipulationSidePanelWidth
                 Layout.fillHeight: true
-                color: "#8E9191"
+                color: Style.dialogBackground
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 12
+                    anchors.leftMargin: Style.manipulationPanelMargin
+                    anchors.rightMargin: Style.manipulationPanelMargin
+                    spacing: Style.manipulationPanelSpacing
                     Button {
                         id: resetBtn
                         text: "Reset"
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 50
+                        Layout.preferredHeight: Style.customButtonHeight
                         contentItem: Text {
                             text: resetBtn.text
-                            font.pixelSize: 20
-                            font.weight: Font.Medium
+                            font.pixelSize: Style.fontTitleSize
+                            font.weight: Style.fontWeight
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
                         background: Rectangle {
-                            color: resetBtn.pressed ? "#A34141" : (resetBtn.hovered ? "#C45454" : "#AB4141")
-                            radius: 4
+                            color: resetBtn.pressed ? Style.cancelActionBtnPressed : (resetBtn.hovered ? Style.cancelActionBtnHover : Style.cancelActionBtnNormal)
+                            radius: Style.dialogRadius
                         }
                         onClicked: resetConfirm.open()
                     }
                     RowLayout {
-                        Layout.fillWidth: true
+                        spacing: 0
                         CustomButton {
                             id: undoBtn
                             Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                            Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                             icon.source: "../Resources/undo.svg"
-                            iconSize: 35
+                            iconSize: Style.metadataActionIconSize
                             enabled: historyIndex > 0
-                            opacity: enabled ? 1.0 : 0.4
+                            opacity: enabled ? 1.0 : Style.metadataDisabledIconOpacity
                             tooltipText: "Cofnij (Ctrl+Z)"
                             onClicked: {
                                 historyIndex--
@@ -306,10 +308,10 @@ Rectangle {
                             id: redoBtn
                             Layout.fillWidth: true
                             enabled: historyIndex < history.length - 1
-                            opacity: enabled ? 1.0 : 0.4
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                            opacity: enabled ? 1.0 : Style.metadataDisabledIconOpacity
+                            Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                             icon.source: "../Resources/undo.svg"
-                            iconSize: 35
+                            iconSize: Style.metadataActionIconSize
                             contentItem: Item {
                                 Image {
                                     anchors.centerIn: parent
@@ -317,11 +319,11 @@ Rectangle {
                                     height: redoBtn.iconSize
                                     sourceSize.width: redoBtn.iconSize
                                     sourceSize.height: redoBtn.iconSize
-                                    source: redoBtn.icon.source
+                                    source: Style.currentTheme === "dark" ? "../Resources/icons-light/undo.svg" :  "../Resources/undo.svg"
                                     mirror: true
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
-                                    opacity: redoBtn.enabled ? 1.0 : 0.25
+                                    opacity: redoBtn.enabled ? 1.0 : Style.metadataDisabledIconOpacity
                                 }
                             }
                             tooltipText: "Ponów (Ctrl+Y)"
@@ -341,9 +343,9 @@ Rectangle {
                         CustomButton {
                             id: actionBtn
                             Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                            Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                             icon.source: "../Resources/transition-right.svg"
-                            iconSize: 35
+                            iconSize: Style.metadataActionIconSize
                             tooltipText: "Pokaż zmiany"
                             MouseArea {
                                 anchors.fill: parent
@@ -376,19 +378,34 @@ Rectangle {
                             }
                         }
                     }
-                    Repeater {
-                        id: repeaterId
+                    ListView {
+                        id: cornerButtonList
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: Style.editorCornerListSpacing
+                        clip: true
                         model: 12
-                        CornerButton {
+                        delegate: CornerButton {
+                            width: ListView.view.width
+                            height: Style.menuItemHeight
                             settingsCategory: "slot" + (index + 1)
                             onFunctionActivated: (name) => triggerEditorAction(name)
                         }
+                        ScrollBar.vertical: ScrollBar {
+                            id: scrollB
+                            anchors.right: parent.right
+                            visible: scrollB.active || scrollB.hovered
+                            contentItem: Rectangle {
+                                implicitWidth: Style.editorCornerScrollBarWidth
+                                radius: Style.editorCornerScrollBarRadius
+                                color: scrollB.pressed ? Style.secondaryTextColor : Style.disabledTextColor
+                            }
+                        }
                     }
-                    Item { Layout.fillHeight: true }
                 }
             }
             Rectangle {
-                color: "#C0C3C4"
+                color: Style.metadataRightPanelBg
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.margins: 0
@@ -396,18 +413,19 @@ Rectangle {
                     id: imageContainer
                     anchors.fill: parent
                     clip: true
+                    property real dragOffsetX: 0
+                    property real dragOffsetY: 0
                     Image {
                         id: photo
                         source: isShowingOriginal ? originalImagePath : imagePath
-                        x: (parent.width - width) / 2
-                        y: (parent.height - height) / 2
-                        scale: zoomSlider.value
+                        fillMode: Image.PreserveAspectFit
+                        scale: fitScale * zoomSlider.value
                         transformOrigin: Item.Center
-                        width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
-                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
-                        fillMode: Image.Stretch
                         asynchronous: false
                         cache: false
+                        anchors.centerIn: parent
+                        anchors.horizontalCenterOffset: imageContainer.dragOffsetX
+                        anchors.verticalCenterOffset: imageContainer.dragOffsetY
                         transform: Scale {
                             origin.x: photo.width / 2
                             origin.y: photo.height / 2
@@ -452,6 +470,25 @@ Rectangle {
                             renderTarget: Canvas.Image
                             renderStrategy: Canvas.Threaded
                             property bool contextReady: false
+                            property string pendingImage: ""
+                            property string initialCanvasData: ""
+                            onAvailableChanged: {
+                                if (available && initialCanvasData !== "") {
+                                    loadImage(initialCanvasData);
+                                }
+                            }
+                            onImageLoaded: {
+                                var ctx = getContext("2d");
+                                ctx.imageSmoothingEnabled = false;
+                                if (pendingImage !== "") {
+                                    ctx.clearRect(0, 0, width, height);
+                                    ctx.drawImage(pendingImage, 0, 0, width, height);
+                                    pendingImage = "";
+                                } else if (manipulationScreen.initialCanvasData !== "") {
+                                    ctx.drawImage(manipulationScreen.initialCanvasData, 0, 0, width, height);
+                                }
+                                requestPaint();
+                            }
                         }
                         layer.enabled: true
                         layer.effect: MultiEffect {
@@ -491,18 +528,27 @@ Rectangle {
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         cursorShape: (panMode || pressedButtons & Qt.MiddleButton)
                                      ? Qt.ClosedHandCursor : Qt.ArrowCursor
-                        drag.target: (panMode || pressedButtons & Qt.MiddleButton) ? photo : null
-                        drag.axis: Drag.XAndYAxis
-                        drag.minimumX: -photo.width / 2
-                        drag.maximumX: imageContainer.width - photo.width / 2
-                        drag.minimumY: -photo.height / 2
-                        drag.maximumY: imageContainer.height - photo.height / 2
+                        property int lastX: 0
+                        property int lastY: 0
                         onPressed: (mouse) => {
-                            if (mouse.button === Qt.MiddleButton) {
+                            if (mouse.button === Qt.MiddleButton || panMode) {
+                                dragArea.lastX = mouse.x
+                                dragArea.lastY = mouse.y
                                 mouse.accepted = true
                             }
                         }
+                        onPositionChanged: (mouse) => {
+                            if (pressed && (pressedButtons & Qt.MiddleButton || panMode)) {
+                                let deltaX = mouse.x - dragArea.lastX
+                                let deltaY = mouse.y - dragArea.lastY
+                                imageContainer.dragOffsetX += deltaX
+                                imageContainer.dragOffsetY += deltaY
+                                dragArea.lastX = mouse.x
+                                dragArea.lastY = mouse.y
+                            }
+                        }
                         onWheel: (wheel) => {
+                            refitSize()
                             if (wheel.angleDelta.y > 0) {
                                 zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.1)
                             } else {
@@ -510,9 +556,7 @@ Rectangle {
                             }
                         }
                         onDoubleClicked: {
-                            photo.x = (parent.width - photo.width) / 2
-                            photo.y = (parent.height - photo.height) / 2
-                            zoomSlider.value = 1.0
+                            zoomToFit()
                         }
                     }
                 }
@@ -520,200 +564,123 @@ Rectangle {
         }
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 60
-            color: "#8E9191"
+            Layout.preferredHeight: Style.manipulationBottomBarHeight1
+            color: Style.dialogBackground
             RowLayout {
-                anchors.centerIn: parent
+                anchors.leftMargin: Style.editorBottomBarMargin
+                anchors.rightMargin: Style.editorBottomBarMargin
+                anchors.fill: parent
+                spacing: Style.editorBottomBarSpacing
                 CustomButton {
                     id: cropBtn
-                    Layout.preferredHeight: 50
-                    Layout.preferredWidth: rowContent.childrenRect.width + rowContent.leftPadding + rowContent.rightPadding
+                    Layout.minimumWidth: Style.editorToolBtnMinWidth
+                    Layout.preferredHeight: Style.editorToolBtnHeight
                     contentItem: Row {
                         id: rowContent
-                        spacing: 10
-                        leftPadding: 15
-                        rightPadding: 15
-                        Image {
-                            source: "../Resources/crop.svg"
-                            width: 28; height: 28
-                            sourceSize: Qt.size(28, 28)
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Text {
-                            text: "Manipulacja wymiarami"
-                            font.pixelSize: 20
-                            color: "black"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                        spacing: Style.editorToolBtnSpacing
+                        leftPadding: Style.editorToolBtnPadding; rightPadding: Style.editorToolBtnPadding
+                        Image { source: Style.currentTheme === "dark" ? "../Resources/icons-light/crop.svg" :  "../Resources/crop.svg"; width: Style.editorToolBtnIconSize; height: Style.editorToolBtnIconSize; sourceSize: Qt.size(Style.editorToolBtnIconSize, Style.editorToolBtnIconSize); anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Kadrowanie"; font.pixelSize: Style.fontTitleSize; color: Style.baseTextColor; anchors.verticalCenter: parent.verticalCenter }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL("image/png");
-                        let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": currentMetadata,
-                                                           "initialCanvasData": snapshot })
-                        manipPage.manipulationFinished.connect(function(info) {      
+                        let manipPage = mainStack.push("ManipulationScreen.qml", { "imageInfo": currentMetadata, "initialCanvasData": drawingCanvas.toDataURL("image/png")  })
+                        manipPage.manipulationFinished.connect(function(info) {
                             currentMetadata = info.metadata
                             photo.autoTransform = true
                             photo.rotation = currentMetadata.angle
-                            photo.sourceClipRect = Qt.rect(
-                                currentMetadata.crop.x,
-                                currentMetadata.crop.y,
-                                currentMetadata.crop.w,
-                                currentMetadata.crop.h
-                            )
-                            var ctx = drawingCanvas.getContext("2d");
+                            photo.sourceClipRect = Qt.rect(currentMetadata.crop.x, currentMetadata.crop.y, currentMetadata.crop.w, currentMetadata.crop.h)
+                            drawingCanvas.pendingImage = info.image;
                             drawingCanvas.loadImage(info.image);
-                            drawingCanvas.imageLoaded.connect(function() {
-                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                                ctx.imageSmoothingEnabled = false;
-                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
-                                drawingCanvas.requestPaint();
-                            });
                             commitState()
                             editorScreen.forceActiveFocus()
                         })
+                        zoomToFit()
                     }
                 }
                 CustomButton {
                     id: adjustBtn
-                    Layout.preferredHeight: 50
-                    Layout.preferredWidth: rowContent2.childrenRect.width + rowContent2.leftPadding + rowContent2.rightPadding
-                    Layout.leftMargin: 100
+                    Layout.minimumWidth: Style.editorToolBtnMinWidth
+                    Layout.preferredHeight: Style.editorToolBtnHeight
                     contentItem: Row {
                         id: rowContent2
-                        spacing: 10
-                        leftPadding: 15
-                        rightPadding: 15
-                        Image {
-                            source: "../Resources/sun-light.svg"
-                            width: 28; height: 28
-                            sourceSize: Qt.size(28, 28)
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Text {
-                            text: "Korekta"
-                            font.pixelSize: 20
-                            color: "black"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                        spacing: Style.editorToolBtnSpacing
+                        leftPadding: Style.editorToolBtnPadding; rightPadding: Style.editorToolBtnPadding
+                        Image { source: Style.currentTheme === "dark" ? "../Resources/icons-light/sun-light.svg" :  "../Resources/sun-light.svg"; width: Style.editorToolBtnIconSize; height: Style.editorToolBtnIconSize; sourceSize: Qt.size(Style.editorToolBtnIconSize, Style.editorToolBtnIconSize); anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Postprodukcja"; font.pixelSize: Style.fontTitleSize; color: Style.baseTextColor; anchors.verticalCenter: parent.verticalCenter }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL("image/png");
-                        let correctPage = mainStack.push("CorrectionScreen.qml", { "imageInfo": currentMetadata,
-                                                             "initialCanvasData": snapshot })
+                        let correctPage = mainStack.push("CorrectionScreen.qml", { "imageInfo": currentMetadata, "initialCanvasData": drawingCanvas.toDataURL("image/png") })
                         correctPage.correctionFinished.connect(function(info) {
                             currentMetadata = info.metadata
-                            var ctx = drawingCanvas.getContext("2d");
+                            drawingCanvas.pendingImage = info.image;
                             drawingCanvas.loadImage(info.image);
-                            drawingCanvas.imageLoaded.connect(function() {
-                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                                ctx.imageSmoothingEnabled = false;
-                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
-                                drawingCanvas.requestPaint();
-                            });
                             commitState()
                             editorScreen.forceActiveFocus()
                         })
+                        zoomToFit()
                     }
                 }
                 CustomButton {
                     id: filtersBtn
-                    Layout.preferredHeight: 50
-                    Layout.preferredWidth: rowContent3.childrenRect.width + rowContent3.leftPadding + rowContent3.rightPadding
-                    Layout.leftMargin: 100
+                    Layout.minimumWidth: Style.editorToolBtnMinWidth
+                    Layout.preferredHeight: Style.editorToolBtnHeight
                     contentItem: Row {
                         id: rowContent3
-                        spacing: 10
-                        leftPadding: 15
-                        rightPadding: 15
-                        Image {
-                            source: "../Resources/color-filter.svg"
-                            width: 28; height: 28
-                            sourceSize: Qt.size(28, 28)
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Text {
-                            text: "Filtry"
-                            font.pixelSize: 20
-                            color: "black"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                        spacing: Style.editorToolBtnSpacing
+                        leftPadding: Style.editorToolBtnPadding; rightPadding: Style.editorToolBtnPadding
+                        Image { source: Style.currentTheme === "dark" ? "../Resources/icons-light/color-filter.svg" :  "../Resources/color-filter.svg"; width: Style.editorToolBtnIconSize; height: Style.editorToolBtnIconSize; sourceSize: Qt.size(Style.editorToolBtnIconSize, Style.editorToolBtnIconSize); anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Filtry"; font.pixelSize: Style.fontTitleSize; color: Style.baseTextColor; anchors.verticalCenter: parent.verticalCenter }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL("image/png");
-                        let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                            "initialCanvasData": snapshot })
+                        let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata, "initialCanvasData": drawingCanvas.toDataURL("image/png") })
                         filterPage.filteringFinished.connect(function(info) {
                             currentMetadata = info.metadata
-                            var ctx = drawingCanvas.getContext("2d");
+                            drawingCanvas.pendingImage = info.image;
                             drawingCanvas.loadImage(info.image);
-                            drawingCanvas.imageLoaded.connect(function() {
-                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                                ctx.imageSmoothingEnabled = false;
-                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
-                                drawingCanvas.requestPaint();
-                            });
                             commitState()
                             editorScreen.forceActiveFocus()
                         })
+                        zoomToFit()
                     }
                 }
                 CustomButton {
                     id: drawBtn
-                    Layout.leftMargin: 100
-                    Layout.preferredHeight: 50
-                    Layout.preferredWidth: rowContent4.childrenRect.width + rowContent4.leftPadding + rowContent4.rightPadding
+                    Layout.minimumWidth: Style.editorToolBtnMinWidth
+                    Layout.preferredHeight: Style.editorToolBtnHeight
                     contentItem: Row {
                         id: rowContent4
-                        spacing: 10
-                        leftPadding: 15
-                        rightPadding: 15
-                        Image {
-                            source: "../Resources/edit-pencil.svg"
-                            width: 28; height: 28
-                            sourceSize: Qt.size(28, 28)
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Text {
-                            text: "Rysunek"
-                            font.pixelSize: 20
-                            color: "black"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                        spacing: Style.editorToolBtnSpacing
+                        leftPadding: Style.editorToolBtnPadding; rightPadding: Style.editorToolBtnPadding
+                        Image { source: Style.currentTheme === "dark" ? "../Resources/icons-light/edit-pencil.svg" :  "../Resources/edit-pencil.svg"; width: Style.editorToolBtnIconSize; height: Style.editorToolBtnIconSize; sourceSize: Qt.size(Style.editorToolBtnIconSize, Style.editorToolBtnIconSize); anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Rysunek"; font.pixelSize: Style.fontTitleSize; color: Style.baseTextColor; anchors.verticalCenter: parent.verticalCenter }
                     }
                     onClicked: {
-                        let snapshot = drawingCanvas.toDataURL("image/png");
-                        let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
-                                                          "initialCanvasData": snapshot  })
+                        let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata, "initialCanvasData": drawingCanvas.toDataURL("image/png") })
                         drawPage.drawingFinished.connect(function(info) {
                             currentMetadata = info.metadata
-                            var ctx = drawingCanvas.getContext("2d");
+                            drawingCanvas.pendingImage = info.image;
                             drawingCanvas.loadImage(info.image);
-                            drawingCanvas.imageLoaded.connect(function() {
-                                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                                ctx.imageSmoothingEnabled = false;
-                                ctx.drawImage(info.image, 0, 0, drawingCanvas.width, drawingCanvas.height);
-                                drawingCanvas.requestPaint();
-                            });
                             commitState()
                             editorScreen.forceActiveFocus()
                         })
+                        zoomToFit()
                     }
                 }
             }
         }
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#A0A3A3"
+            Layout.preferredHeight: Style.manipulationBottomBarHeight2
+            color: Style.manipulationBottomBarColor2
             RowLayout {
                 anchors.fill: parent
                 CustomButton {
                     icon.source: "../Resources/info-circle.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    iconSize: Style.metadataActionIconSize
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     tooltipText: "Edytuj metadane"
                     onClicked: {
-                        let pg = mainStack.push("MetadataScreen.qml", { "imageInfo": currentMetadata })
+                        let pg = mainStack.push("MetadataScreen.qml", { "imageInfo": currentMetadata  })
                         pg.metadataUpdated.connect(function(updatedData) {
                             if (JSON.stringify(currentMetadata) !== JSON.stringify(updatedData)) {
                                 currentMetadata = updatedData
@@ -724,37 +691,37 @@ Rectangle {
                     }
                 }
                 Row {
-                    spacing: 5
+                    spacing: Style.manipulationZoomBtnSpacing
                     Layout.alignment: Qt.AlignVCenter
                     Image {
-                        source: "../Resources/crop.svg"
-                        width: 28; height: 28
-                        sourceSize: Qt.size(28, 28)
+                        source: Style.currentTheme === "dark" ? "../Resources/icons-light/crop.svg" :  "../Resources/crop.svg"
+                        width: Style.editorToolBtnIconSize; height: Style.editorToolBtnIconSize
+                        sourceSize: Qt.size(Style.editorToolBtnIconSize, Style.editorToolBtnIconSize)
                         fillMode: Image.PreserveAspectFit
-                        opacity: 0.7
+                        opacity: Style.editorInfoIconOpacity
                     }
                     Text {
                         text: currentMetadata.w + " x " + currentMetadata.h
-                        font.pixelSize: 20
-                        color: "#222"
+                        font.pixelSize: Style.fontTitleSize
+                        color: Style.secondaryTextColor
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
                 Row {
-                    Layout.leftMargin: 10
-                    spacing: 5
+                    Layout.leftMargin: Style.manipulationPanelMargin
+                    spacing: Style.manipulationZoomBtnSpacing
                     Layout.alignment: Qt.AlignVCenter
                     Image {
-                        source: "../Resources/floppy-disk.svg"
-                        width: 28; height: 28
-                        sourceSize: Qt.size(28, 28)
+                        source: Style.currentTheme === "dark" ? "../Resources/icons-light/floppy-disk.svg" :  "../Resources/floppy-disk.svg"
+                        width: Style.editorToolBtnIconSize; height: Style.editorToolBtnIconSize
+                        sourceSize: Qt.size(Style.editorToolBtnIconSize, Style.editorToolBtnIconSize)
                         fillMode: Image.PreserveAspectFit
-                        opacity: 0.7
+                        opacity: Style.editorInfoIconOpacity
                     }
                     Text {
                         text: "3.2MB"
-                        font.pixelSize: 20
-                        color: "#222"
+                        font.pixelSize: Style.fontTitleSize
+                        color: Style.secondaryTextColor
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
@@ -762,22 +729,25 @@ Rectangle {
                 CustomButton {
                     id: handBtn
                     icon.source: "../Resources/drag-hand-gesture.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    iconSize: Style.metadataActionIconSize
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     tooltipText: "Przesuń obraz"
                     background: Rectangle {
-                        color: panMode ? "#6E7171" : (handBtn.hovered ? "#9EAAAA" : "transparent")
-                        radius: 4
+                        color: panMode ? Style.manipulationPanBtnActiveColor : (handBtn.hovered ? Style.manipulationPanBtnHoverColor : "transparent")
+                        radius: Style.dialogRadius
                     }
                     onClicked: panMode = !panMode
                 }
                 RowLayout {
-                    spacing: 5
+                    spacing: Style.manipulationZoomBtnSpacing
                     CustomButton {
                         icon.source: "../Resources/zoom-out.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                        iconSize: Style.metadataActionIconSize
+                        Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                        onClicked: {
+                            refitSize()
+                            zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                        }
                         tooltipText: "Oddal zdjęcie(Ctrl + -)"
                     }
                     Slider {
@@ -785,43 +755,49 @@ Rectangle {
                         from: 0.1
                         to: 5.0
                         value: 1.0
-                        Layout.preferredWidth: 250
+                        Layout.preferredWidth: Style.manipulationZoomSliderWidth
                         ToolTip.visible: pressed
                         ToolTip.delay: 0
+                        onPressedChanged: {
+                            refitSize()
+                        }
                         ToolTip.text: Math.round(value * 100) + "%"
                         background: Rectangle {
                             x: zoomSlider.leftPadding
                             y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 120
-                            implicitHeight: 6
+                            implicitWidth: Style.manipulationZoomSliderBgWidth
+                            implicitHeight: Style.manipulationZoomSliderBgHeight
                             width: zoomSlider.availableWidth
                             height: implicitHeight
-                            radius: 2
-                            color: "#555"
+                            radius: Style.manipulationZoomSliderBgRadius
+                            color: Style.manipulationZoomSliderBgColor
                         }
                         handle: Rectangle {
                             x: zoomSlider.leftPadding + zoomSlider.visualPosition * (zoomSlider.availableWidth - width)
                             y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 16
-                            implicitHeight: 16
-                            radius: 8
-                            color: "white"
-                            border.color: "#333"
+                            implicitWidth: Style.manipulationZoomSliderHandleSize
+                            implicitHeight: Style.manipulationZoomSliderHandleSize
+                            radius: Style.manipulationZoomSliderHandleRadius
+                            color: Style.manipulationZoomSliderHandleColor
+                            border.color: Style.manipulationZoomSliderHandleBorderColor
                         }
                     }
                     CustomButton {
                         icon.source: "../Resources/zoom-in.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                        iconSize: Style.metadataActionIconSize
+                        Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                        onClicked: {
+                            refitSize()
+                            zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                        }
                         tooltipText: "Przybliż zdjęcie(Ctrl + +)"
                     }
                 }
                 CustomButton {
                     id: fullscreenBtn
                     icon.source: "../Resources/maximize.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    iconSize: Style.metadataActionIconSize
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     tooltipText: "Dopasuj do ekranu(Ctrl+F)"
                     onClicked: zoomToFit()
                 }
@@ -830,9 +806,9 @@ Rectangle {
     }
     Rectangle {
         id: printingOverlay
-        color: "#000000"
+        color: Style.editorOverlayBg
         anchors.fill: parent
-        opacity: isPrinting ? 0.6 : 0.0
+        opacity: isPrinting ? Style.editorPrintingOverlayOpacity : 0.0
         visible: opacity > 0
         z: 100
         Behavior on opacity {
@@ -850,27 +826,27 @@ Rectangle {
             text: "Drukowanie..."
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.verticalCenter
-            anchors.topMargin: 40
-            font.pixelSize: 24
-            color: "white"
+            anchors.topMargin: Style.editorOverlayTextMargin
+            font.pixelSize: Style.editorOverlayTextSizeLarge
+            color: Style.editorOverlayTextColor
         }
     }
     Rectangle {
         id: saveOverlay
         anchors.fill: parent
-        color: "#000000"
-        opacity: isSaving ? 0.7 : 0.0
+        color: Style.editorOverlayBg
+        opacity: isSaving ? Style.editorSaveOverlayOpacity : 0.0
         visible: opacity > 0
         z: 110
         Behavior on opacity { NumberAnimation { duration: 300 } }
         MouseArea { anchors.fill: parent; enabled: saveOverlay.visible }
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 20
+            spacing: Style.filterStrengthSpacing
             Text {
                 text: "Zapisywanie zmian..."
-                color: "white"
-                font.pixelSize: 22
+                color: Style.editorOverlayTextColor
+                font.pixelSize: Style.editorOverlayTextSizeMedium
                 Layout.alignment: Qt.AlignHCenter
             }
             ProgressBar {
@@ -878,18 +854,18 @@ Rectangle {
                 from: 0
                 to: 1.0
                 value: 0
-                Layout.preferredWidth: 300
+                Layout.preferredWidth: Style.filterMenuWidth
                 background: Rectangle {
-                    implicitHeight: 6
-                    color: "#444"
-                    radius: 3
+                    implicitHeight: Style.editorProgressBarHeight
+                    color: Style.editorProgressBarBgColor
+                    radius: Style.editorProgressBarRadius
                 }
                 contentItem: Item {
                     Rectangle {
                         width: saveProgressBar.visualPosition * parent.width
                         height: parent.height
-                        radius: 2
-                        color: "#AC4141"
+                        radius: Style.editorProgressBarFillRadius
+                        color: Style.editorProgressBarFillColor
                     }
                 }
             }
@@ -1088,19 +1064,12 @@ Rectangle {
     }
     function zoomToFit() {
         if (photo.status !== Image.Ready) return
-        let imgW = photo.sourceSize.width
-        let imgH = photo.sourceSize.height
-        let containerW = imageContainer.width
-        let containerH = imageContainer.height
-        let finalScale = 1.0
-        if (photo.width > 0 && photo.height > 0) {
-            let currentRatioX = containerW / photo.width
-            let currentRatioY = containerH / photo.height
-            finalScale = Math.min(currentRatioX, currentRatioY)
-        }
-        zoomSlider.value = finalScale
+        refitSize()
+        zoomSlider.value = 1.0
         photo.x = (imageContainer.width - photo.width) / 2
         photo.y = (imageContainer.height - photo.height) / 2
+        imageContainer.dragOffsetX = 0
+        imageContainer.dragOffsetY = 0
     }
     function triggerEditorAction(actionName) {
         if (actionName === "Obróć w prawo") {
@@ -1151,7 +1120,7 @@ Rectangle {
         } else if (actionName === "Szum") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                "initialCanvasData": snapshot })
+                                                "initialCanvasData": snapshot  })
             filterPage.selectedFilterName = "Szum"
             filterPage.filterStrength = currentMetadata["f_szum"]
             filterPage.activeProperty = "f_szum"
@@ -1170,7 +1139,7 @@ Rectangle {
         } else if (actionName === "Rozmycie kół") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                "initialCanvasData": snapshot })
+                                                "initialCanvasData": snapshot  })
             filterPage.selectedFilterName = "Rozmycie kół"
             filterPage.filterStrength = currentMetadata["f_rozmycie_kol"]
             filterPage.activeProperty = "f_rozmycie_kol"
@@ -1189,7 +1158,7 @@ Rectangle {
         } else if (actionName === "Pixel Art") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                "initialCanvasData": snapshot })
+                                                "initialCanvasData": snapshot  })
             filterPage.selectedFilterName = "Pixel Art"
             filterPage.filterStrength = currentMetadata["f_pixel_art"]
             filterPage.activeProperty = "f_pixel_art"
@@ -1246,7 +1215,7 @@ Rectangle {
         } else if (actionName === "Progowanie") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                "initialCanvasData": snapshot })
+                                                "initialCanvasData": snapshot  })
             filterPage.selectedFilterName = "Progowanie"
             filterPage.filterStrength = currentMetadata["f_progowanie"]
             filterPage.activeProperty = "f_progowanie"
@@ -1265,7 +1234,7 @@ Rectangle {
         } else if (actionName === "Sepia Retro") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                "initialCanvasData": snapshot })
+                                                "initialCanvasData": snapshot  })
             filterPage.selectedFilterName = "Sepia Retro"
             filterPage.filterStrength = currentMetadata["f_sepia_retro"]
             filterPage.activeProperty = "f_sepia_retro"
@@ -1284,7 +1253,7 @@ Rectangle {
         } else if (actionName === "Zimna Noc") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                "initialCanvasData": snapshot })
+                                                "initialCanvasData": snapshot  })
             filterPage.selectedFilterName = "Zimna Noc"
             filterPage.filterStrength = currentMetadata["f_zimna_noc"]
             filterPage.activeProperty = "f_zimna_noc"
@@ -1303,7 +1272,7 @@ Rectangle {
         } else if (actionName === "Ciepłe Lato") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let filterPage = mainStack.push("FilterScreen.qml", { "imageInfo": currentMetadata,
-                                                "initialCanvasData": snapshot })
+                                                "initialCanvasData": snapshot  })
             filterPage.selectedFilterName = "Ciepłe Lato"
             filterPage.filterStrength = currentMetadata["f_cieple_lato"]
             filterPage.activeProperty = "f_cieple_lato"
@@ -1339,7 +1308,7 @@ Rectangle {
         } else if (actionName === "Pióro") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
-                                              "initialCanvasData": snapshot })
+                                              "initialCanvasData": snapshot  })
             drawPage.selectedTool = "Pen"
             drawPage.drawingFinished.connect(function(info) {
                 currentMetadata = info.metadata
@@ -1373,7 +1342,7 @@ Rectangle {
         } else if (actionName === "Próbnik") {
             let snapshot = drawingCanvas.toDataURL("image/png");
             let drawPage = mainStack.push("DrawingScreen.qml", { "imageInfo": currentMetadata,
-                                              "initialCanvasData": snapshot })
+                                              "initialCanvasData": snapshot  })
             drawPage.selectedTool = "Picker"
             drawPage.drawingFinished.connect(function(info) {
                 currentMetadata = info.metadata
@@ -1423,5 +1392,16 @@ Rectangle {
             })
         }
         editorScreen.forceActiveFocus()
+    }
+    function refitSize() {
+        let containerW = imageContainer.width
+        let containerH = imageContainer.height
+        let finalScale = 1.0
+        if (photo.width > 0 && photo.height > 0) {
+            let currentRatioX = containerW / photo.width
+            let currentRatioY = containerH / photo.height
+            finalScale = Math.min(currentRatioX, currentRatioY)
+        }
+        fitScale = finalScale
     }
 }

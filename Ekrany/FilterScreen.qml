@@ -3,10 +3,10 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Effects
 import "../Kontrolki"
-
+import "../Style"
 Rectangle {
     id: filterScreen
-    color: "#8E9191"
+    color: Style.dialogBackground
     property var imageInfo: ({})
     property var currentMetadata: ({})
     property var originalMetadata: currentMetadata
@@ -19,6 +19,7 @@ Rectangle {
     property real filterStrength: 30.0
     property string activeProperty: ""
     signal filteringFinished(var finalInfo)
+    property real fitScale: 1.0
     property string initialCanvasData: ""
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function saveState() {
@@ -59,6 +60,7 @@ Rectangle {
     Item {
         id: filterKeyHandler
         Keys.onPressed: (event) => {
+            refitSize()
             let ctrl = event.modifiers & Qt.ControlModifier
             if (ctrl) {
                 if (event.key === Qt.Key_Z) {
@@ -92,12 +94,12 @@ Rectangle {
         Rectangle {
             id: topBar
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#8E9191"
+            Layout.preferredHeight: Style.manipulationTopBarHeight
+            color: Style.dialogBackground
             Text {
                 text: currentMetadata.name
                 anchors.centerIn: parent
-                font.pixelSize: 20; color: "black"
+                font.pixelSize: Style.fontTitleSize; color: Style.baseTextColor
             }
         }
         RowLayout {
@@ -106,225 +108,245 @@ Rectangle {
             spacing: 0
             Rectangle {
                 Layout.leftMargin: 0
-                Layout.preferredWidth: 150
+                Layout.preferredWidth: Style.manipulationSidePanelWidth
+                Layout.maximumWidth: Style.manipulationSidePanelWidth
                 Layout.fillHeight: true
-                color: "#8E9191"
-                ColumnLayout {
+                color: Style.dialogBackground
+                ScrollView {
+                    id: sideScroll
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 12
-                    Button {
-                        id: resetBtn
-                        text: "Anuluj"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        contentItem: Text {
-                            text: resetBtn.text
-                            font.pixelSize: 20
-                            font.weight: Font.Medium
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: resetBtn.pressed ? "#A34141" : (resetBtn.hovered ? "#C45454" : "#AB4141")
-                            radius: 4
-                        }
-                        onClicked: mainStack.pop()
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        CustomButton {
-                            id: undoBtn
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/undo.svg"
-                            iconSize: 35
-                            enabled: historyIndex > 0
-                            opacity: enabled ? 1.0 : 0.4
-                            tooltipText: "Cofnij (Ctrl+Z)"
-                            onClicked: {
-                                historyIndex--;
-                                applyState(history[historyIndex]);
-                            }
-                        }
-                        CustomButton {
-                            id: redoBtn
-                            Layout.fillWidth: true
-                            enabled: historyIndex < history.length - 1
-                            opacity: enabled ? 1.0 : 0.4
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/undo.svg"
-                            iconSize: 35
-                            contentItem: Item {
-                                Image {
-                                    anchors.centerIn: parent
-                                    width: redoBtn.iconSize
-                                    height: redoBtn.iconSize
-                                    sourceSize.width: redoBtn.iconSize
-                                    sourceSize.height: redoBtn.iconSize
-                                    source: redoBtn.icon.source
-                                    mirror: true
-                                    fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                    opacity: redoBtn.enabled ? 1.0 : 0.25
-                                }
-                            }
-                            onClicked: {
-                                historyIndex++;
-                                applyState(history[historyIndex]);
-                            }
-                            tooltipText: "Ponów (Ctrl+Y)"
-                        }
-                        CustomButton {
-                            id: actionBtn
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                            icon.source: "../Resources/transition-right.svg"
-                            iconSize: 35
-                            tooltipText: "Przytrzymaj żeby pokazać zmiany"
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onEntered: {
-                                    isShowingOriginal = true
-                                }
-                                onExited: {
-                                    isShowingOriginal = false
-                                }
-                            }
-                        }
-                    }
+                    Layout.preferredWidth: Style.manipulationSidePanelWidth
+                    Layout.maximumWidth: Style.manipulationSidePanelWidth
+                    clip: true
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     ColumnLayout {
-                        width: parent.width
-                        spacing: 0
-                        Repeater {
-                            model: ["Filtry \nWyostrzania", "Filtry \nRozmycia", "Filtry \nKreatywne", "Filtry \nKorekcyjne", "Filtry \nKoloru"]
-                            FilterButton {
-                                categoryTitle: modelData
-                                onFilterActivated: (filter) => {
-                                   selectedFilterName = filter;
-                                   let mapping = {
-                                       "Krawędzie": "f_krawedzie", "Szum": "f_szum",
-                                       "Rozmycie kół": "f_rozmycie_kol", "Pixel Art": "f_pixel_art",
-                                       "Stary Film": "f_stary_film", "Negatyw": "f_negatyw",
-                                       "Progowanie": "f_progowanie", "Sepia Retro": "f_sepia_retro",
-                                       "Zimna Noc": "f_zimna_noc", "Ciepłe Lato": "f_cieple_lato"
-                                   };
-                                   activeProperty = mapping[filter];
-                                }
+                        anchors.fill: parent
+                        anchors.top: parent.top
+                        anchors.leftMargin: Style.manipulationPanelMargin
+                        anchors.rightMargin: Style.manipulationPanelMargin
+                        spacing: Style.manipulationPanelSpacing
+                        Button {
+                            id: resetBtn
+                            text: "Anuluj"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Style.customButtonHeight
+                            contentItem: Text {
+                                text: resetBtn.text
+                                font.pixelSize: Style.fontTitleSize
+                                font.weight: Style.fontWeight
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
-                        }
-                    }
-                    ColumnLayout {
-                        spacing: 20
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 130
-                        visible: filterScreen.selectedFilterName !== ""
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 1
-                            color: "black"
-                            opacity: 0.2
-                        }
-                        Text {
-                            text: filterScreen.selectedFilterName
-                            font.pixelSize: 18
-                            font.weight: Font.Medium
-                            color: "black"
-                            Layout.fillWidth: true
-                            wrapMode: Text.WordWrap
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            Layout.preferredHeight: 45
-                        }
-                        Slider {
-                            id: filterStrengthSlider
-                            from: 0
-                            to: 100
-                            value: (activeProperty !== "" && currentMetadata[activeProperty] !== undefined)
-                                       ? currentMetadata[activeProperty] : 0
-                            stepSize: 1
-                            Layout.preferredWidth: 130
-                            Layout.preferredHeight: 30
-                            Layout.alignment: Qt.AlignCenter
                             background: Rectangle {
-                                x: filterStrengthSlider.leftPadding
-                                y: filterStrengthSlider.topPadding + filterStrengthSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 130
-                                implicitHeight: 8
-                                width: filterStrengthSlider.availableWidth
-                                height: implicitHeight
-                                radius: 3
-                                color: "#555555"
+                                color: resetBtn.pressed ? Style.cancelActionBtnPressed : (resetBtn.hovered ? Style.cancelActionBtnHover : Style.cancelActionBtnNormal)
+                                radius: Style.dialogRadius
                             }
-                            handle: Rectangle {
-                                x: filterStrengthSlider.leftPadding + filterStrengthSlider.visualPosition * (filterStrengthSlider.availableWidth - width)
-                                y: filterStrengthSlider.topPadding + filterStrengthSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 22
-                                implicitHeight: 22
-                                radius: 9
-                                color: "white"
-                                border.color: "#333"
-                                border.width: 1
+                            onClicked: {
+                                var handler = function() {
+                                    globalConfirmDialog.confirmed.disconnect(handler)
+                                    globalConfirmDialog.cancelled.disconnect(cancelHandler)
+                                    mainStack.pop()
+                                }
+                                var cancelHandler = function() {
+                                    globalConfirmDialog.confirmed.disconnect(handler)
+                                    globalConfirmDialog.cancelled.disconnect(cancelHandler)
+                                }
+                                globalConfirmDialog.confirmed.connect(handler)
+                                globalConfirmDialog.cancelled.connect(cancelHandler)
+                                globalConfirmDialog.open()
                             }
-                            onMoved: {
-                                if (activeProperty !== "") {
-                                    currentMetadata[activeProperty] = value
-                                    let data = JSON.parse(JSON.stringify(currentMetadata));
-                                    data.activeProperty = value;
-                                    currentMetadata = data;
+                        }
+                        RowLayout {
+                            spacing: 0
+                            CustomButton {
+                                id: undoBtn
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                                icon.source: "../Resources/undo.svg"
+                                iconSize: Style.metadataActionIconSize
+                                enabled: historyIndex > 0
+                                opacity: enabled ? 1.0 : Style.metadataDisabledIconOpacity
+                                tooltipText: "Cofnij (Ctrl+Z)"
+                                onClicked: {
+                                    historyIndex--;
+                                    applyState(history[historyIndex]);
                                 }
                             }
-                            onPressedChanged: {
-                                if (!pressed) {
-                                    let data = JSON.parse(JSON.stringify(currentMetadata));
-                                    data.activeProperty = value;
-                                    currentMetadata = data;
-                                    saveState()
+                            CustomButton {
+                                id: redoBtn
+                                Layout.fillWidth: true
+                                enabled: historyIndex < history.length - 1
+                                opacity: enabled ? 1.0 : Style.metadataDisabledIconOpacity
+                                Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                                icon.source: "../Resources/undo.svg"
+                                iconSize: Style.metadataActionIconSize
+                                contentItem: Item {
+                                    Image {
+                                        anchors.centerIn: parent
+                                        width: redoBtn.iconSize
+                                        height: redoBtn.iconSize
+                                        sourceSize.width: redoBtn.iconSize
+                                        sourceSize.height: redoBtn.iconSize
+                                        source: Style.currentTheme === "dark" ? "../Resources/icons-light/undo.svg" :  "../Resources/undo.svg"
+                                        mirror: true
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        opacity: redoBtn.enabled ? 1.0 : Style.metadataDisabledIconOpacity
+                                    }
+                                }
+                                onClicked: {
+                                    historyIndex++;
+                                    applyState(history[historyIndex]);
+                                }
+                                tooltipText: "Ponów (Ctrl+Y)"
+                            }
+                            CustomButton {
+                                id: actionBtn
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                                icon.source: "../Resources/transition-right.svg"
+                                iconSize: Style.metadataActionIconSize
+                                tooltipText: "Przytrzymaj żeby pokazać zmiany"
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        isShowingOriginal = true
+                                    }
+                                    onExited: {
+                                        isShowingOriginal = false
+                                    }
                                 }
                             }
                         }
-                        Text {
-                            text: filterStrengthSlider.value.toFixed(0)
-                            font.pixelSize: 20
-                            font.weight: Font.Medium
-                            color: "#333"
-                            Layout.alignment: Qt.AlignCenter
+                        ColumnLayout {
+                            width: parent.width
+                            spacing: 0
+                            Repeater {
+                                model: ["Filtry \nWyostrzania", "Filtry \nRozmycia", "Filtry \nKreatywne", "Filtry \nKorekcyjne", "Filtry \nKoloru"]
+                                FIlterButton {
+                                    categoryTitle: modelData
+                                    onFilterActivated: (filter) => {
+                                       selectedFilterName = filter;
+                                       let mapping = {
+                                           "Krawędzie": "f_krawedzie", "Szum": "f_szum",
+                                           "Rozmycie kół": "f_rozmycie_kol", "Pixel Art": "f_pixel_art",
+                                           "Stary Film": "f_stary_film", "Negatyw": "f_negatyw",
+                                           "Progowanie": "f_progowanie", "Sepia Retro": "f_sepia_retro",
+                                           "Zimna Noc": "f_zimna_noc", "Ciepłe Lato": "f_cieple_lato"
+                                       };
+                                       activeProperty = mapping[filter];
+                                    }
+                                }
+                            }
                         }
-                    }
-                    Item { Layout.fillHeight: true }
-                    Button {
-                        id: confirmBtn
-                        text: "Zatwierdź"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        Layout.bottomMargin: 10
-                        contentItem: Text {
-                            text: confirmBtn.text
-                            font.pixelSize: 18
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+                        ColumnLayout {
+                            spacing: Style.filterStrengthSpacing
+                            Layout.fillWidth: true
+                            visible: filterScreen.selectedFilterName !== ""
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Style.filterStrengthSeparatorHeight
+                                color: Style.baseTextColor
+                                opacity: Style.filterStrengthSeparatorOpacity
+                            }
+                            Text {
+                                text: filterScreen.selectedFilterName
+                                font.pixelSize: Style.filterStrengthTextSize
+                                font.weight: Style.fontWeight
+                                color: Style.baseTextColor
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                Layout.preferredHeight: Style.filterStrengthTextHeight
+                            }
+                            Slider {
+                                id: filterStrengthSlider
+                                from: 0
+                                to: 100
+                                value: (activeProperty !== "" && currentMetadata[activeProperty] !== undefined)
+                                           ? currentMetadata[activeProperty] : 0
+                                stepSize: 1
+                                Layout.preferredHeight: Style.filterStrengthSliderHeight
+                                Layout.alignment: Qt.AlignCenter
+                                background: Rectangle {
+                                    x: filterStrengthSlider.leftPadding
+                                    y: filterStrengthSlider.topPadding + filterStrengthSlider.availableHeight / 2 - height / 2
+                                    implicitWidth: Style.filterStrengthSliderBgWidth
+                                    implicitHeight: Style.sliderBgImplicitHeight
+                                    width: filterStrengthSlider.availableWidth
+                                    height: implicitHeight
+                                    radius: Style.sliderBgRadius
+                                    color: Style.sliderBgColor
+                                }
+                                handle: Rectangle {
+                                    x: filterStrengthSlider.leftPadding + filterStrengthSlider.visualPosition * (filterStrengthSlider.availableWidth - width)
+                                    y: filterStrengthSlider.topPadding + filterStrengthSlider.availableHeight / 2 - height / 2
+                                    implicitWidth: Style.sliderHandleImplicitWidth
+                                    implicitHeight: Style.sliderHandleImplicitHeight
+                                    radius: Style.sliderHandleRadius
+                                    color: Style.sliderHandleColor
+                                    border.color: Style.sliderHandleBorderColor
+                                    border.width: Style.sliderHandleBorderWidth
+                                }
+                                onMoved: {
+                                    if (activeProperty !== "") {
+                                        currentMetadata[activeProperty] = value
+                                        let data = JSON.parse(JSON.stringify(currentMetadata));
+                                        data.activeProperty = value;
+                                        currentMetadata = data;
+                                    }
+                                }
+                                onPressedChanged: {
+                                    if (!pressed) {
+                                        let data = JSON.parse(JSON.stringify(currentMetadata));
+                                        data.activeProperty = value;
+                                        currentMetadata = data;
+                                        saveState()
+                                    }
+                                }
+                            }
+                            Text {
+                                text: filterStrengthSlider.value.toFixed(0)
+                                font.pixelSize: Style.sliderValueFontSize
+                                font.weight: Style.sliderValueFontWeight
+                                color: Style.sliderValueColor
+                                Layout.alignment: Qt.AlignCenter
+                            }
                         }
-                        background: Rectangle {
-                            color: confirmBtn.pressed ? "#217dbb" : (confirmBtn.hovered ? "#3498db" : "#2980b9")
-                            radius: 4
-                        }
-                        onClicked: {
-                            saveState();
-                            let finalImage = drawingCanvas.toDataURL("image/png");
-                            let finalData = {
-                                "image": finalImage,
-                                "metadata": clone(currentMetadata)
-                            };
-                            filteringFinished(finalData);
-                            mainStack.pop();
+                        Item { Layout.fillHeight: true }
+                        Button {
+                            id: confirmBtn
+                            text: "Zatwierdź"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Style.customButtonHeight
+                            Layout.bottomMargin: Style.manipulationPanelMargin
+                            contentItem: Text {
+                                text: confirmBtn.text
+                                font.pixelSize: Style.fontBodySize
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                color: confirmBtn.pressed ? Style.manipulationConfirmBtnPressed : (confirmBtn.hovered ? Style.manipulationConfirmBtnHover : Style.manipulationConfirmBtnNormal)
+                                radius: Style.manipulationConfirmBtnRadius
+                            }
+                            onClicked: {
+                                saveState();
+                                let finalData = {
+                                    "image": filterScreen.initialCanvasData,
+                                    "metadata": clone(currentMetadata)
+                                };
+                                filteringFinished(finalData);
+                                mainStack.pop();
+                            }
                         }
                     }
                 }
             }
             Rectangle {
-                color: "#C0C3C4"
+                color: Style.metadataRightPanelBg
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.margins: 0
@@ -332,16 +354,14 @@ Rectangle {
                     id: imageContainer
                     anchors.fill: parent
                     clip: true
+                    property real dragOffsetX: 0
+                    property real dragOffsetY: 0
                     Image {
                         id: photo
                         source: imageInfo.path
-                        x: (parent.width - width) / 2
-                        y: (parent.height - height) / 2
-                        scale: zoomSlider.value
+                        scale: fitScale * zoomSlider.value
                         transformOrigin: Item.Center
-                        width: Math.min(imageContainer.width, imageContainer.height * (sourceSize.width / sourceSize.height))
-                        height: Math.min(imageContainer.height, imageContainer.width * (sourceSize.height / sourceSize.width))
-                        fillMode: Image.Stretch
+                        fillMode: Image.PreserveAspectFit
                         rotation: isShowingOriginal ? originalMetadata.angle : currentMetadata.angle
                         transform: Scale {
                             origin.x: photo.width / 2
@@ -349,24 +369,17 @@ Rectangle {
                             xScale: isShowingOriginal ? originalMetadata.flipH : currentMetadata.flipH
                             yScale: isShowingOriginal ? originalMetadata.flipV : currentMetadata.flipV
                         }
-                        Canvas {
-                            id: drawingCanvas
+                        anchors.centerIn: parent
+                        anchors.horizontalCenterOffset: imageContainer.dragOffsetX
+                        anchors.verticalCenterOffset: imageContainer.dragOffsetY
+                        Image {
+                            id: overlayDrawing
                             z: 100
-                            anchors.fill: parent
-                            renderTarget: Canvas.Image
-                            renderStrategy: Canvas.Threaded
-                            property bool contextReady: false
-                            onAvailableChanged: {
-                                if (available && filterScreen.initialCanvasData !== "") {
-                                    loadImage(filterScreen.initialCanvasData);
-                                }
-                            }
-                            onImageLoaded: {
-                                var ctx = getContext("2d");
-                                ctx.imageSmoothingEnabled = false;
-                                ctx.drawImage(filterScreen.initialCanvasData, 0, 0, width, height);
-                                requestPaint();
-                            }
+                            anchors.fill: photo
+                            source: (initialCanvasData && initialCanvasData !== "data:,") ? initialCanvasData : ""
+                            fillMode: Image.PreserveAspectFit
+                            visible: filterScreen.initialCanvasData !== ""
+                            smooth: false
                         }
                         layer.enabled: true
                         layer.effect: MultiEffect {
@@ -416,18 +429,27 @@ Rectangle {
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         cursorShape: (panMode || pressedButtons & Qt.MiddleButton)
                                      ? Qt.ClosedHandCursor : Qt.ArrowCursor
-                        drag.target: (panMode || pressedButtons & Qt.MiddleButton) ? photo : null
-                        drag.axis: Drag.XAndYAxis
-                        drag.minimumX: -photo.width / 2
-                        drag.maximumX: imageContainer.width - photo.width / 2
-                        drag.minimumY: -photo.height / 2
-                        drag.maximumY: imageContainer.height - photo.height / 2
+                        property int lastX: 0
+                        property int lastY: 0
                         onPressed: (mouse) => {
-                            if (mouse.button === Qt.MiddleButton) {
+                            if (mouse.button === Qt.MiddleButton || panMode) {
+                                dragArea.lastX = mouse.x
+                                dragArea.lastY = mouse.y
                                 mouse.accepted = true
                             }
                         }
+                        onPositionChanged: (mouse) => {
+                            if (pressed && (pressedButtons & Qt.MiddleButton || panMode)) {
+                                let deltaX = mouse.x - dragArea.lastX
+                                let deltaY = mouse.y - dragArea.lastY
+                                imageContainer.dragOffsetX += deltaX
+                                imageContainer.dragOffsetY += deltaY
+                                dragArea.lastX = mouse.x
+                                dragArea.lastY = mouse.y
+                            }
+                        }
                         onWheel: (wheel) => {
+                            refitSize()
                             if (wheel.angleDelta.y > 0) {
                                 zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.1)
                             } else {
@@ -435,9 +457,7 @@ Rectangle {
                             }
                         }
                         onDoubleClicked: {
-                            photo.x = (parent.width - photo.width) / 2
-                            photo.y = (parent.height - photo.height) / 2
-                            zoomSlider.value = 1.0
+                            zoomToFit()
                         }
                     }
                 }
@@ -445,35 +465,38 @@ Rectangle {
         }
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 60
-            color: "#8E9191"
+            Layout.preferredHeight: Style.manipulationBottomBarHeight1
+            color: Style.dialogBackground
         }
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#A0A3A3"
+            Layout.preferredHeight: Style.manipulationBottomBarHeight2
+            color: Style.manipulationBottomBarColor2
             RowLayout {
                 anchors.fill: parent
                 Item { Layout.fillWidth: true }
                 CustomButton {
                     id: handBtn
                     icon.source: "../Resources/drag-hand-gesture.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    iconSize: Style.metadataActionIconSize
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     tooltipText: "Przesuń obraz"
                     background: Rectangle {
-                        color: panMode ? "#6E7171" : (handBtn.hovered ? "#9EAAAA" : "transparent")
-                        radius: 4
+                        color: panMode ? Style.manipulationPanBtnActiveColor : (handBtn.hovered ? Style.manipulationPanBtnHoverColor : "transparent")
+                        radius: Style.dialogRadius
                     }
                     onClicked: panMode = !panMode
                 }
                 RowLayout {
-                    spacing: 5
+                    spacing: Style.manipulationZoomBtnSpacing
                     CustomButton {
                         icon.source: "../Resources/zoom-out.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                        iconSize: Style.metadataActionIconSize
+                        Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                        onClicked: {
+                            refitSize()
+                            zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.2)
+                        }
                         tooltipText: "Oddal zdjęcie(Ctrl + -)"
                     }
                     Slider {
@@ -481,44 +504,49 @@ Rectangle {
                         from: 0.1
                         to: 5.0
                         value: 1.0
-                        Layout.preferredWidth: 250
+                        Layout.preferredWidth: Style.manipulationZoomSliderWidth
                         ToolTip.visible: pressed
                         ToolTip.delay: 0
                         ToolTip.text: Math.round(value * 100) + "%"
-                        onPressedChanged: if (!pressed) saveState()
+                        onPressedChanged: {
+                            refitSize()
+                        }
                         background: Rectangle {
                             x: zoomSlider.leftPadding
                             y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 120
-                            implicitHeight: 6
+                            implicitWidth: Style.manipulationZoomSliderBgWidth
+                            implicitHeight: Style.manipulationZoomSliderBgHeight
                             width: zoomSlider.availableWidth
                             height: implicitHeight
-                            radius: 2
-                            color: "#555"
+                            radius: Style.manipulationZoomSliderBgRadius
+                            color: Style.manipulationZoomSliderBgColor
                         }
                         handle: Rectangle {
                             x: zoomSlider.leftPadding + zoomSlider.visualPosition * (zoomSlider.availableWidth - width)
                             y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 16
-                            implicitHeight: 16
-                            radius: 8
-                            color: "white"
-                            border.color: "#333"
+                            implicitWidth: Style.manipulationZoomSliderHandleSize
+                            implicitHeight: Style.manipulationZoomSliderHandleSize
+                            radius: Style.manipulationZoomSliderHandleRadius
+                            color: Style.manipulationZoomSliderHandleColor
+                            border.color: Style.manipulationZoomSliderHandleBorderColor
                         }
                     }
                     CustomButton {
                         icon.source: "../Resources/zoom-in.svg"
-                        iconSize: 35
-                        Layout.preferredWidth: 50; Layout.preferredHeight: 50
-                        onClicked: zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                        iconSize: Style.metadataActionIconSize
+                        Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
+                        onClicked: {
+                            refitSize()
+                            zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.2)
+                        }
                         tooltipText: "Przybliż zdjęcie(Ctrl + +)"
                     }
                 }
                 CustomButton {
                     id: fullscreenBtn
                     icon.source: "../Resources/maximize.svg"
-                    iconSize: 35
-                    Layout.preferredWidth: 50; Layout.preferredHeight: 50
+                    iconSize: Style.metadataActionIconSize
+                    Layout.preferredWidth: Style.metadataActionBtnSize; Layout.preferredHeight: Style.metadataActionBtnSize
                     tooltipText: "Dopasuj do ekranu(Ctrl+F)"
                     onClicked: zoomToFit()
                 }
@@ -527,16 +555,22 @@ Rectangle {
     }
     function zoomToFit() {
         if (photo.status !== Image.Ready) return
+        refitSize()
+        zoomSlider.value = 1.0
+        photo.x = (imageContainer.width - photo.width) / 2
+        photo.y = (imageContainer.height - photo.height) / 2
+        imageContainer.dragOffsetX = 0
+        imageContainer.dragOffsetY = 0
+    }
+    function refitSize() {
         let containerW = imageContainer.width
         let containerH = imageContainer.height
         let finalScale = 1.0
         if (photo.width > 0 && photo.height > 0) {
-            let currentRatioX = containerW /(photo.width)
-            let currentRatioY = containerH /(photo.height)
+            let currentRatioX = containerW / photo.width
+            let currentRatioY = containerH / photo.height
             finalScale = Math.min(currentRatioX, currentRatioY)
         }
-        zoomSlider.value = finalScale
-        photo.x = (imageContainer.width - photo.width) / 2
-        photo.y = (imageContainer.height - photo.height) / 2
+        fitScale = finalScale
     }
 }
